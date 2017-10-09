@@ -5,6 +5,7 @@
 #import "FutureMethods.h"
 #import "iTermAdvancedSettingsModel.h"
 #import "iTermAnnouncementViewController.h"
+#import "iTermMetalClipView.h"
 #import "iTermPreferences.h"
 #import "NSView+iTerm.h"
 #import "MovePaneController.h"
@@ -15,6 +16,9 @@
 #import "PTYTextView.h"
 #import "SessionTitleView.h"
 #import "SplitSelectionView.h"
+#import "iTermMetalTestDriver.h"
+
+#import <MetalKit/MetalKit.h>
 
 static int nextViewId;
 static const double kTitleHeight = 22;
@@ -82,6 +86,9 @@ static NSDate* lastResizeDate_;
 
     NSView *_hoverURLView;
     NSTextField *_hoverURLTextField;
+
+    iTermMetalTestDriver *_driver;
+    MTKView *_metalView;
 }
 
 + (double)titleHeight {
@@ -118,20 +125,36 @@ static NSDate* lastResizeDate_;
         // Assign a globally unique view ID.
         _viewId = nextViewId++;
 
-        // Allocate a scrollview
         _scrollview = [[PTYScrollView alloc] initWithFrame:NSMakeRect(0,
                                                                       0,
                                                                       aRect.size.width,
                                                                       aRect.size.height)
                                        hasVerticalScroller:NO];
+
+        // Add a metal view
+        if (@available(macOS 10.11, *)) {
+            _metalView = [[MTKView alloc] initWithFrame:_scrollview.contentView.frame
+                                                 device:MTLCreateSystemDefaultDevice()];
+            [self addSubview:_metalView];
+            _driver = [[iTermMetalTestDriver alloc] initWithMetalKitView:_metalView];
+            [_driver mtkView:_metalView drawableSizeWillChange:_metalView.drawableSize];
+            _metalView.delegate = _driver;
+        }
+
+        // Allocate a scrollview
         [_scrollview setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
+
+        if (@available(macOS 10.11, *)) {
+            iTermMetalClipView *metalClipView = [[[iTermMetalClipView alloc] initWithFrame:_scrollview.contentView.frame] autorelease];
+            metalClipView.metalView = _metalView;
+            _scrollview.contentView = metalClipView;
+            _scrollview.drawsBackground = NO;
+        }
+
+        _scrollview.contentView.copiesOnScroll = NO;
 
         // assign the main view
         [self addSubview:_scrollview];
-
-        // setCopiesOnScroll is off because there is a top and bottom margin in the PTYTextView and
-        // we would not want that copied.
-        [[_scrollview contentView] setCopiesOnScroll:NO];
     }
     return self;
 }
@@ -238,11 +261,16 @@ static NSDate* lastResizeDate_;
         frame.origin = NSMakePoint(horizontalPadding, verticalPadding);
         _hoverURLTextField.frame = frame;
     }
+
+    _metalView.frame = _scrollview.contentView.frame;
+    [_driver mtkView:_metalView drawableSizeWillChange:_metalView.drawableSize];
 }
 
 - (void)setDelegate:(id<iTermSessionViewDelegate>)delegate {
     _delegate = delegate;
     [_delegate sessionViewDimmingAmountDidChange:[self adjustedDimmingAmount]];
+#warning this is a terrible hack
+    _driver.dataSource = (id)delegate;
 }
 
 - (void)_dimShadeToDimmingAmount:(float)newDimmingAmount {
@@ -548,6 +576,10 @@ static NSDate* lastResizeDate_;
     }
 
     [self updateLayout];
+}
+
+- (void)viewDidMoveToWindow {
+    [_delegate sessionViewDidChangeWindow];
 }
 
 #pragma mark NSDraggingSource protocol

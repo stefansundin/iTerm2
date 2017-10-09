@@ -323,6 +323,9 @@ typedef void (^PTYTextViewDrawingHookBlock)(iTermTextDrawingHelper *);
 // Lines that are currently visible on the screen.
 @property(nonatomic, readonly) VT100GridRange rangeOfVisibleLines;
 
+// Helps drawing text and background.
+@property (nonatomic, readonly) iTermTextDrawingHelper *drawingHelper;
+
 // Returns the size of a cell for a given font. hspace and vspace are multipliers and the width
 // and height.
 + (NSSize)charSizeForFont:(NSFont*)aFont

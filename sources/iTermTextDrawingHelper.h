@@ -275,7 +275,11 @@
                          rectsPtr:(const NSRect *)rectArray
                         rectCount:(NSInteger)rectCount;
 
+- (NSImage *)imageForCoord:(VT100GridCoord)coord size:(CGSize)size;
+
 // Draw timestamps. Returns the width of the widest timestamp.
 - (CGFloat)drawTimestamps;
+
+- (VT100GridCoordRange)coordRangeForRect:(NSRect)rect;
 
 @end
