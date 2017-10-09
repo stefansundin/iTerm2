@@ -269,8 +269,6 @@ static NSDate* lastResizeDate_;
 - (void)setDelegate:(id<iTermSessionViewDelegate>)delegate {
     _delegate = delegate;
     [_delegate sessionViewDimmingAmountDidChange:[self adjustedDimmingAmount]];
-#warning this is a terrible hack
-    _driver.dataSource = (id)delegate;
 }
 
 - (void)_dimShadeToDimmingAmount:(float)newDimmingAmount {

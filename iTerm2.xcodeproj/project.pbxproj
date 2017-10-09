@@ -1267,6 +1267,8 @@
 		A61D16FC1AAFD5530013FCCA /* iTermBackgroundColorRun.h in Headers */ = {isa = PBXBuildFile; fileRef = A61D16FA1AAFD5530013FCCA /* iTermBackgroundColorRun.h */; };
 		A61D16FD1AAFD5530013FCCA /* iTermBackgroundColorRun.h in Headers */ = {isa = PBXBuildFile; fileRef = A61D16FA1AAFD5530013FCCA /* iTermBackgroundColorRun.h */; };
 		A61F8E301E62591800D315D0 /* iTermFakeUserDefaults.m in Sources */ = {isa = PBXBuildFile; fileRef = A61F8E2F1E62591800D315D0 /* iTermFakeUserDefaults.m */; };
+		A623D9541F8B04890011F8C3 /* iTermMetalGlue.h in Headers */ = {isa = PBXBuildFile; fileRef = A623D9521F8B04890011F8C3 /* iTermMetalGlue.h */; };
+		A623D9551F8B04890011F8C3 /* iTermMetalGlue.m in Sources */ = {isa = PBXBuildFile; fileRef = A623D9531F8B04890011F8C3 /* iTermMetalGlue.m */; };
 		A624231019CF6B0C00182C08 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A624230F19CF6B0C00182C08 /* Sparkle.framework */; };
 		A624231119CF6B0C00182C08 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A624230F19CF6B0C00182C08 /* Sparkle.framework */; };
 		A624231219CF6B0C00182C08 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A624230F19CF6B0C00182C08 /* Sparkle.framework */; };
@@ -3323,6 +3325,8 @@
 		A61D16FB1AAFD5530013FCCA /* iTermBackgroundColorRun.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = iTermBackgroundColorRun.m; sourceTree = "<group>"; };
 		A61F8E2E1E62591800D315D0 /* iTermFakeUserDefaults.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = iTermFakeUserDefaults.h; sourceTree = "<group>"; };
 		A61F8E2F1E62591800D315D0 /* iTermFakeUserDefaults.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = iTermFakeUserDefaults.m; sourceTree = "<group>"; };
+		A623D9521F8B04890011F8C3 /* iTermMetalGlue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermMetalGlue.h; sourceTree = "<group>"; };
+		A623D9531F8B04890011F8C3 /* iTermMetalGlue.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iTermMetalGlue.m; sourceTree = "<group>"; };
 		A624230F19CF6B0C00182C08 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = ThirdParty/Sparkle.framework; sourceTree = "<group>"; };
 		A624231319CF6B1600182C08 /* Growl.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Growl.framework; path = ThirdParty/Growl.framework; sourceTree = "<group>"; };
 		A624231819CF6DE000182C08 /* NMSSH.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NMSSH.framework; path = ThirdParty/NMSSH.framework; sourceTree = "<group>"; };
@@ -5324,6 +5328,15 @@
 			name = API;
 			sourceTree = "<group>";
 		};
+		A623D9511F8B04730011F8C3 /* Glue */ = {
+			isa = PBXGroup;
+			children = (
+				A623D9521F8B04890011F8C3 /* iTermMetalGlue.h */,
+				A623D9531F8B04890011F8C3 /* iTermMetalGlue.m */,
+			);
+			name = Glue;
+			sourceTree = "<group>";
+		};
 		A62C3B371BD40D1400B5629D /* Marks */ = {
 			isa = PBXGroup;
 			children = (
@@ -5459,6 +5472,7 @@
 		A67960801F81FC65008A42BC /* Metal */ = {
 			isa = PBXGroup;
 			children = (
+				A623D9511F8B04730011F8C3 /* Glue */,
 				A65943C81F83380E00598B1E /* Support */,
 				A67960E01F82019A008A42BC /* iTermMetalTestDriver.h */,
 				A67960E11F82019B008A42BC /* iTermMetalTestDriver.m */,
@@ -7169,6 +7183,7 @@
 				A66719541DCE36C3000CE608 /* SetDirectoryTrigger.h in Headers */,
 				A66719551DCE36C3000CE608 /* iTermAutomaticProfileSwitcher.h in Headers */,
 				A66719561DCE36C3000CE608 /* iTermRecentDirectoryMO.h in Headers */,
+				A623D9541F8B04890011F8C3 /* iTermMetalGlue.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -8725,6 +8740,7 @@
 				A67960D31F81FCBB008A42BC /* iTermBroadcastStripesRenderer.m in Sources */,
 				A668E8A31E7EFEA5005F8758 /* iTermURLStore.m in Sources */,
 				A66719681DCE3772000CE608 /* iTermWebSocketConnection.m in Sources */,
+				A623D9551F8B04890011F8C3 /* iTermMetalGlue.m in Sources */,
 				A67960D01F81FCBB008A42BC /* iTermBackgroundColorRenderer.m in Sources */,
 				A67960E41F8201A1008A42BC /* iTermMetalTestDriver.m in Sources */,
 				A66719641DCE3772000CE608 /* iTermSocket.m in Sources */,

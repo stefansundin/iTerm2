@@ -161,13 +161,15 @@
     [_textureMap findOrAllocateIndexOfLockedTextureWithKey:dictionary
                                                   creation:creation
                                                 completion:^(NSInteger index) {
-                                                    // Update the PIU with the session index. It may not be a legit value yet.
-                                                    iTermTextPIU *piu = (iTermTextPIU *)[_cellRenderer piuForCoord:coord];
-                                                    MTLOrigin origin = [_textureMap.array offsetForIndex:index];
-                                                    const float w = 1.0 / _textureMap.array.atlasSize.width;
-                                                    const float h = 1.0 / _textureMap.array.atlasSize.height;
-                                                    piu->textureOffset = (vector_float2){ origin.x * w, origin.y * h };
-                                                    [context addIndex:index];
+                                                    if (index >= 0) {
+                                                        // Update the PIU with the session index. It may not be a legit value yet.
+                                                        iTermTextPIU *piu = (iTermTextPIU *)[_cellRenderer piuForCoord:coord];
+                                                        MTLOrigin origin = [_textureMap.array offsetForIndex:index];
+                                                        const float w = 1.0 / _textureMap.array.atlasSize.width;
+                                                        const float h = 1.0 / _textureMap.array.atlasSize.height;
+                                                        piu->textureOffset = (vector_float2){ origin.x * w, origin.y * h };
+                                                        [context addIndex:index];
+                                                    }
                                                     [context leave];
                                                 }];
 }

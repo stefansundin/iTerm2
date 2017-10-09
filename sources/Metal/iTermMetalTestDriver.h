@@ -5,8 +5,13 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @protocol iTermMetalTestDriverDataSource<NSObject>
+
 - (NSData *)characterAtScreenCoord:(VT100GridCoord)coord;
-- (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord size:(CGSize)size scale:(CGFloat)scale;
+- (void)metalDriverWillBeginDrawingFrame;
+- (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord
+                                      size:(CGSize)size
+                                     scale:(CGFloat)scale;
+
 @end
 
 // Our platform independent render class

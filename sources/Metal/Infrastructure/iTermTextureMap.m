@@ -75,20 +75,28 @@
                 completion(index);
             });
         } else {
-            index = [self newStagingIndexForKey:key];
-
+            iTermTextureMapEntry *entry = [self newTextureMapEntryForKey:key];
+            NSInteger index = entry.index;
 //            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 #warning TODO: Do this in a bg queue so it can be parallelized. this requires serious changes to the text drawing helper.
             dispatch_async(dispatch_get_main_queue(), ^{
                 NSImage *image = creation();
-                dispatch_async(_queue, ^{
-                    DLog(@"%@: create and stage new texture %@", self.label, @(index));
-                    [_stage setSlice:index withImage:image];
-                    [_stagedIndexes addIndex:index];
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        completion(index);
+                if (image != nil) {
+                    dispatch_async(_queue, ^{
+                        DLog(@"%@: create and stage new texture %@", self.label, @(index));
+                        [_stage setSlice:index withImage:image];
+                        [_stagedIndexes addIndex:index];
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            completion(index);
+                        });
                     });
-                });
+                } else {
+                    [_map removeObjectForKey:key];
+                    [_lru removeObject:entry];
+                    [_indexesToBlit removeIndex:index];
+                    [_lockedIndexes removeObject:@(index)];
+                    completion(-1);
+                }
             });
         }
     });
@@ -184,10 +192,9 @@
 
 // Private queue only
 // Allocates an index and marks it as needing blitting.
-- (NSInteger)newStagingIndexForKey:(NSDictionary *)key {
-    iTermTextureMapEntry *entry;
+- (iTermTextureMapEntry *)newTextureMapEntryForKey:(NSDictionary *)key {
+    iTermTextureMapEntry *entry = nil;
     if (_lru.count == _capacity) {
-        iTermTextureMapEntry *entry = nil;
         for (iTermTextureMapEntry *candidate in _lru.reverseObjectEnumerator) {
             if ([_lockedIndexes countForObject:@(candidate.index)] == 0) {
                 entry = candidate;
@@ -196,8 +203,8 @@
         }
         assert(entry != nil);
         [_map removeObjectForKey:entry.key];
+        [_lru removeObject:entry];
         entry.key = key;
-        [_lru removeLastObject];
         DLog(@"%@: LRU cache is full. Reuse %@", self.label, @(entry.index));
     } else {
         entry = [[iTermTextureMapEntry alloc] init];
@@ -212,7 +219,7 @@
     [_lockedIndexes addObject:@(entry.index)];
     DLog(@"%@ lock and mark as needing blit from stage %@", self.label, @(entry.index));
 
-    return entry.index;
+    return entry;
 }
 
 @end

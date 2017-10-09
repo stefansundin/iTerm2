@@ -23,6 +23,7 @@
 #import "iTermInitialDirectory.h"
 #import "iTermKeyBindingMgr.h"
 #import "iTermKeyLabels.h"
+#import "iTermMetalGlue.h"
 #import "iTermMetalTestDriver.h"
 #import "iTermMenuOpener.h"
 #import "iTermMouseCursor.h"
@@ -218,7 +219,6 @@ static const NSUInteger kMaxHosts = 100;
     iTermAutomaticProfileSwitcherDelegate,
     iTermCoprocessDelegate,
     iTermHotKeyNavigableSession,
-    iTermMetalTestDriverDataSource,
     iTermPasteHelperDelegate,
     iTermSessionViewDelegate,
     iTermUpdateCadenceControllerDelegate>
@@ -464,6 +464,8 @@ static const NSUInteger kMaxHosts = 100;
     long long _statusChangedAbsLine;
 
     iTermUpdateCadenceController *_cadenceController;
+
+    iTermMetalGlue *_metalGlue;
 }
 
 + (void)registerSessionInArrangement:(NSDictionary *)arrangement {
@@ -547,6 +549,8 @@ static const NSUInteger kMaxHosts = 100;
         _customEscapeSequenceNotifications = [[NSMutableDictionary alloc] init];
 
         _statusChangedAbsLine = -1;
+        _metalGlue = [[iTermMetalGlue alloc] init];
+        _metalGlue.screen = _screen;
 
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(coprocessChanged)
@@ -609,6 +613,7 @@ ITERM_WEAKLY_REFERENCEABLE
 
 - (void)iterm_dealloc {
     [_view release];
+    [_metalGlue release];
     [self stopTailFind];  // This frees the substring in the tail find context, if needed.
     _shell.delegate = nil;
     dispatch_release(_executionSemaphore);
@@ -1303,7 +1308,7 @@ ITERM_WEAKLY_REFERENCEABLE
     if (liveArrangement) {
         SessionView *liveView = [[[SessionView alloc] initWithFrame:sessionView.frame] autorelease];
         if (@available(macOS 10.11, *)) {
-            liveView.driver.dataSource = aSession;
+            liveView.driver.dataSource = aSession->_metalGlue;
         }
         [delegate addHiddenLiveView:liveView];
         aSession.liveSession = [self sessionFromArrangement:liveArrangement
@@ -1357,7 +1362,7 @@ ITERM_WEAKLY_REFERENCEABLE
     if (!_view) {
         self.view = [[[SessionView alloc] initWithFrame:NSMakeRect(0, 0, aRect.size.width, aRect.size.height)] autorelease];
         if (@available(macOS 10.11, *)) {
-            self.view.driver.dataSource = self;
+            self.view.driver.dataSource = _metalGlue;
         }
         [[_view findViewController] setDelegate:self];
     }
@@ -1370,6 +1375,7 @@ ITERM_WEAKLY_REFERENCEABLE
 
     _textview = [[PTYTextView alloc] initWithFrame: NSMakeRect(0, [iTermAdvancedSettingsModel terminalVMargin], aSize.width, aSize.height)
                                           colorMap:_colorMap];
+    _metalGlue.textDrawingHelper = _textview.drawingHelper;
     _colorMap.dimOnlyText = [iTermPreferences boolForKey:kPreferenceKeyDimOnlyText];
     [_textview setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
     [_textview setFont:[ITAddressBookMgr fontWithDesc:[_profile objectForKey:KEY_NORMAL_FONT]]
@@ -1926,6 +1932,7 @@ ITERM_WEAKLY_REFERENCEABLE
     [_textview setDelegate:nil];
     [_textview removeFromSuperview];
     _textview = nil;
+    _metalGlue.textDrawingHelper = nil;
 }
 
 - (void)jumpToLocationWhereCurrentStatusChanged {
@@ -3713,6 +3720,7 @@ ITERM_WEAKLY_REFERENCEABLE
     [_view autorelease];
     _view = [newView retain];
     newView.delegate = self;
+    newView.driver.dataSource = _metalGlue;
     [newView updateTitleFrame];
     [[_view findViewController] setDelegate:self];
 }
@@ -9197,104 +9205,5 @@ ITERM_WEAKLY_REFERENCEABLE
     return response;
 }
 
-#pragma mark - iTermMetalTestDriverDataSource
-
-- (NSData *)characterAtScreenCoord:(VT100GridCoord)coord {
-    int firstVisibleRow = [_textview.drawingHelper coordRangeForRect:_textview.enclosingScrollView.documentVisibleRect].start.y;
-    screen_char_t *line = [_screen getLineAtIndex:firstVisibleRow + coord.y];
-    return [NSData dataWithBytesNoCopy:&line[coord.x] length:sizeof(screen_char_t) freeWhenDone:NO];
-}
-
-- (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord
-                                      size:(CGSize)size
-                                     scale:(CGFloat)scale {
-    iTermTextDrawingHelper *helper = _textview.drawingHelper;
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGContextRef ctx = CGBitmapContextCreate(NULL,
-                                             size.width,
-                                             size.height,
-                                             8,
-                                             size.width * 4,
-                                             colorSpace,
-                                             kCGImageAlphaPremultipliedLast);
-    CGColorSpaceRelease(colorSpace);
-
-    CGContextSetRGBFillColor(ctx, 1, 0, 0, 1);
-    CGContextFillRect(ctx, CGRectMake(0, 0, size.width, size.height));
-
-    screen_char_t *line = [_screen getLineAtIndex:coord.y];
-    NSFont *font = _textview.font;
-    screen_char_t *sct = line + coord.x;
-    if (sct->complexChar || sct->code > 128) {
-        font = _textview.nonAsciiFont;
-    }
-    [self drawString:ScreenCharToStr(sct)
-                font:font
-                size:size
-      baselineOffset:helper.baselineOffset
-               scale:scale
-             context:ctx];
-
-    CGImageRef imageRef = CGBitmapContextCreateImage(ctx);
-
-    return [[NSImage alloc] initWithCGImage:imageRef size:size];
-}
-
-- (void)drawString:(NSString *)string
-              font:(NSFont *)font
-              size:(CGSize)size
-    baselineOffset:(CGFloat)baselineOffset
-             scale:(CGFloat)scale
-           context:(CGContextRef)ctx {
-    NSLog(@"Draw %@ of size %@", string, NSStringFromSize(size));
-    if (string.length == 0) {
-        return;
-    }
-    CGGlyph glyphs[string.length];
-    const NSUInteger numCodes = string.length;
-    unichar characters[numCodes];
-    [string getCharacters:characters];
-    BOOL ok = CTFontGetGlyphsForCharacters((CTFontRef)font,
-                                           characters,
-                                           glyphs,
-                                           numCodes);
-    if (!ok) {
-        // TODO: fall back and use core text
-//        assert(NO);
-        return;
-    }
-
-    // TODO: fake italic, fake bold, optional anti-aliasing, thin strokes, faint
-    const BOOL antiAlias = YES;
-    CGContextSetShouldAntialias(ctx, antiAlias);
-
-    size_t length = numCodes;
-
-    // TODO: This is slow. Avoid doing it.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    CGContextSelectFont(ctx,
-                        [[font fontName] UTF8String],
-                        [font pointSize],
-                        kCGEncodingMacRoman);
-#pragma clang diagnostic pop
-
-    // TODO: could use extended srgb on macOS 10.12+
-    CGContextSetFillColorSpace(ctx, CGColorSpaceCreateWithName(kCGColorSpaceSRGB));
-    const CGFloat components[4] = { 1.0, 1.0, 1.0, 1.0 };
-    CGContextSetFillColor(ctx, components);
-    double y = -baselineOffset * scale;
-    // Flip vertically and translate to (x, y).
-    CGContextSetTextMatrix(ctx, CGAffineTransformMake(scale,  0.0,
-                                                      0, scale,
-                                                      0, y));
-
-    CGPoint points[length];
-    for (int i = 0; i < length; i++) {
-        points[i].x = 0;
-        points[i].y = 0;
-    }
-    CGContextShowGlyphsAtPositions(ctx, glyphs, points, length);
-}
 
 @end

@@ -131,18 +131,21 @@
 
     iTermTextRendererContext *context = [[iTermTextRendererContext alloc] init];
     int i = 0;
+    id<iTermMetalTestDriverDataSource> dataSource = _dataSource;
+    CGSize cellSize = _cellSize;
+    CGFloat scale = _scale;
+    [dataSource metalDriverWillBeginDrawingFrame];
     for (int y = 0; y < _rows; y++) {
         for (int x = 0; x < _columns; x++) {
-//            unichar c = 'A' + ((_iteration + (i % 2)) % 26);
             NSData *c = [_dataSource characterAtScreenCoord:VT100GridCoordMake(x, y)];
             [_textRenderer setCharacter:c
                              attributes:@{}
                                   coord:(VT100GridCoord){x,y}
                                 context:context
                                creation:^NSImage * _Nonnull{
-                                   return [_dataSource metalImageForCharacterAtCoord:VT100GridCoordMake(x, y)
-                                                                                size:_cellSize
-                                                                               scale:_scale];
+                                   return [dataSource metalImageForCharacterAtCoord:VT100GridCoordMake(x, y)
+                                                                               size:cellSize
+                                                                              scale:scale];
                                }];
             i++;
         }
@@ -187,6 +190,7 @@
 
     // For some reason this is very slow
     iTermTextRendererContext* context = [self rotate];
+    NSLog(@"Preparing");
     [_textRenderer prepareForDrawWithContext:context
                                   completion:^{
         [self reallyDrawInView:view
@@ -198,6 +202,7 @@
 - (void)reallyDrawInView:(MTKView *)view
                startTime:(NSTimeInterval)start
                  context:(iTermTextRendererContext *)context {
+    NSLog(@"Really drawing");
     id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     commandBuffer.label = @"Test Driver Draw";
 
@@ -235,6 +240,7 @@
         [renderEncoder endEncoding];
 
         [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull buffer) {
+            NSLog(@"Completed");
             [_textRenderer releaseContext:context];
             NSTimeInterval end = [NSDate timeIntervalSinceReferenceDate];
             NSLog(@"%@ fps", @(1.0 / (end - start)));

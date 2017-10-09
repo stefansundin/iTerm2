@@ -48,7 +48,7 @@
                           isBackground:(BOOL)isBackground;
 
 - (PTYFontInfo *)drawingHelperFontForChar:(UniChar)ch
-                                isComplex:(BOOL)complex
+                                isComplex:(BOOL)isComplex
                                renderBold:(BOOL *)renderBold
                              renderItalic:(BOOL *)renderItalic;
 
