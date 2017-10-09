@@ -1,6 +1,7 @@
 @import simd;
 @import MetalKit;
 
+#import "DebugLogging.h"
 #import "iTermTextureArray.h"
 #import "iTermMetalTestDriver.h"
 #import "iTermBackgroundImageRenderer.h"
@@ -138,7 +139,7 @@
     for (int y = 0; y < _rows; y++) {
         for (int x = 0; x < _columns; x++) {
             NSDictionary *attributes;
-            NSData *c = [_dataSource metalCharacterAtScreenCoord:VT100GridCoordMake(x, y) attributes:&attributes];
+            id c = [_dataSource metalCharacterAtScreenCoord:VT100GridCoordMake(x, y) attributes:&attributes];
             [_textRenderer setCharacter:c
                              attributes:attributes
                                   coord:(VT100GridCoord){x,y}
@@ -171,7 +172,7 @@
         return;
     }
     if (_busy || _textRenderer.preparing) {
-        NSLog(@"Drop frame");
+        DLog(@"Drop frame");
         return;
     }
     _busy = YES;
@@ -191,7 +192,7 @@
 
     // For some reason this is very slow
     iTermTextRendererContext* context = [self rotate];
-    NSLog(@"Preparing");
+    DLog(@"Preparing");
     [_textRenderer prepareForDrawWithContext:context
                                   completion:^{
         [self reallyDrawInView:view
@@ -203,7 +204,7 @@
 - (void)reallyDrawInView:(MTKView *)view
                startTime:(NSTimeInterval)start
                  context:(iTermTextRendererContext *)context {
-    NSLog(@"Really drawing");
+    DLog(@"Really drawing");
     id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     commandBuffer.label = @"Test Driver Draw";
 
@@ -241,10 +242,10 @@
         [renderEncoder endEncoding];
 
         [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull buffer) {
-            NSLog(@"Completed");
+            DLog(@"Completed");
             [_textRenderer releaseContext:context];
             NSTimeInterval end = [NSDate timeIntervalSinceReferenceDate];
-            NSLog(@"%@ fps", @(1.0 / (end - start)));
+            DLog(@"%@ fps", @(1.0 / (end - start)));
             _busy = NO;
         }];
 

@@ -26,7 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)prepareForDrawWithContext:(iTermTextRendererContext *)context
                        completion:(void (^)(void))completion;
 
-- (void)setCharacter:(NSData *)character
+- (void)setCharacter:(id)character
           attributes:(NSDictionary *)attributes
                coord:(VT100GridCoord)coord
              context:(iTermTextRendererContext *)context

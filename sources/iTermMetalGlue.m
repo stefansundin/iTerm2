@@ -7,6 +7,7 @@
 
 #import "iTermMetalGlue.h"
 
+#import "DebugLogging.h"
 #import "iTermColorMap.h"
 #import "iTermSelection.h"
 #import "iTermTextDrawingHelper.h"
@@ -21,18 +22,28 @@ NS_ASSUME_NONNULL_BEGIN
     screen_char_t _previousCharacterAttributes;
     NSColor *_lastUnprocessedColor;
     NSColor *_previousForegroundColor;
+    NSMutableArray<NSData *> *_lines;
 }
 
 #pragma mark - iTermMetalTestDriverDataSource
 
 - (void)metalDriverWillBeginDrawingFrame {
     _havePreviousCharacterAttributes = NO;
+
+    // Copy lines from model. Always use these for consistency. I should also copy the color map
+    // and any other data dependencies.
+    _lines = [NSMutableArray array];
+    VT100GridCoordRange coordRange = [self.textDrawingHelper coordRangeForRect:self.textDrawingHelper.delegate.enclosingScrollView.documentVisibleRect];
+    const int width = coordRange.end.x - coordRange.start.x;
+    for (int i = coordRange.start.y; i < coordRange.end.y; i++) {
+        screen_char_t *line = [self.screen getLineAtIndex:i];
+        [_lines addObject:[NSData dataWithBytes:line length:sizeof(screen_char_t) * width]];
+    }
 }
 
-- (NSData *)metalCharacterAtScreenCoord:(VT100GridCoord)coord
-                             attributes:(NSDictionary **)attributes {
-    int firstVisibleRow = [self.textDrawingHelper coordRangeForRect:self.textDrawingHelper.delegate.enclosingScrollView.documentVisibleRect].start.y;
-    screen_char_t *line = [self.screen getLineAtIndex:firstVisibleRow + coord.y];
+- (id)metalCharacterAtScreenCoord:(VT100GridCoord)coord
+                       attributes:(NSDictionary **)attributes {
+    screen_char_t *line = (screen_char_t *)_lines[coord.y].bytes;
     BOOL selected = [[self.textDrawingHelper.selection selectedIndexesOnLine:coord.y] containsIndex:coord.x];
 
     BOOL findMatch = NO;
@@ -49,7 +60,10 @@ NS_ASSUME_NONNULL_BEGIN
                                    inUnderlinedRange:NO  // TODO
                                                index:coord.x];
     *attributes = @{ NSForegroundColorAttributeName: textColor };
-    return [NSData dataWithBytesNoCopy:&line[coord.x] length:sizeof(screen_char_t) freeWhenDone:NO];
+    // Also need to take into account which font will be used (bold, italic, nonascii, etc.) plus
+    // box drawing and images. If I want to support subpixel rendering then background color has
+    // to be a factor also.
+    return ScreenCharToStr(&line[coord.x]);
 }
 
 - (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord
@@ -72,7 +86,7 @@ NS_ASSUME_NONNULL_BEGIN
     CGContextSetRGBFillColor(ctx, 0, 0, 0, 0);
     CGContextFillRect(ctx, CGRectMake(0, 0, size.width, size.height));
 
-    screen_char_t *line = [self.screen getLineAtIndex:coord.y];
+    screen_char_t *line = (screen_char_t *)_lines[coord.y].bytes;
     screen_char_t *sct = line + coord.x;
     BOOL fakeBold = NO;
     BOOL fakeItalic = NO;
@@ -102,7 +116,7 @@ NS_ASSUME_NONNULL_BEGIN
     baselineOffset:(CGFloat)baselineOffset
              scale:(CGFloat)scale
            context:(CGContextRef)ctx {
-    NSLog(@"Draw %@ of size %@", string, NSStringFromSize(size));
+    DLog(@"Draw %@ of size %@", string, NSStringFromSize(size));
     if (string.length == 0) {
         return;
     }

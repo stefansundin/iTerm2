@@ -6,8 +6,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol iTermMetalTestDriverDataSource<NSObject>
 
-- (NSData *)metalCharacterAtScreenCoord:(VT100GridCoord)coord
-                             attributes:(NSDictionary * _Nonnull * _Nonnull)attributes;
+- (id)metalCharacterAtScreenCoord:(VT100GridCoord)coord
+                       attributes:(NSDictionary * _Nonnull * _Nonnull)attributes;
 
 - (void)metalDriverWillBeginDrawingFrame;
 - (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord

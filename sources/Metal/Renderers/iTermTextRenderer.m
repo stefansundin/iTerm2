@@ -148,17 +148,16 @@
     [self allocateNewPIUs];
 }
 
-- (void)setCharacter:(NSData *)character
+- (void)setCharacter:(id)character
           attributes:(NSDictionary *)attributes
                coord:(VT100GridCoord)coord
              context:(nonnull iTermTextRendererContext *)context
             creation:(NSImage *(NS_NOESCAPE ^)(void))creation {
-    NSDictionary *dictionary = @{ @"unichar": character };
     NSColor *color = attributes[NSForegroundColorAttributeName];
 
     // Look it up in the session map. If we find it, we can use it directly. The creation block will not be called.a
     [context enter];
-    [_textureMap findOrAllocateIndexOfLockedTextureWithKey:dictionary
+    [_textureMap findOrAllocateIndexOfLockedTextureWithKey:character
                                                   creation:creation
                                                 completion:^(NSInteger index) {
                                                     if (index >= 0) {

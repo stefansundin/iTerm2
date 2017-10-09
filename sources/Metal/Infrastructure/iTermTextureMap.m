@@ -84,8 +84,10 @@
                 if (image != nil) {
                     dispatch_async(_queue, ^{
                         DLog(@"%@: create and stage new texture %@", self.label, @(index));
+                        DLog(@"Stage %@ at %@", key, @(index));
                         [_stage setSlice:index withImage:image];
                         [_stagedIndexes addIndex:index];
+
                         dispatch_async(dispatch_get_main_queue(), ^{
                             completion(index);
                         });
@@ -113,6 +115,17 @@
     dispatch_async(_queue, ^{
         DLog(@"%@: blit from staging to completion: %@", self.label, _indexesToBlit);
         if (_indexesToBlit.count == 0) {
+        // Uncomment to make the stage appear in the GPU debugger
+//          id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+//          commandBuffer.label = @"Blit from stage";
+//          id <MTLBlitCommandEncoder> blitter = [commandBuffer blitCommandEncoder];
+//          [_stage copyTextureAtIndex:0
+//                             toArray:_array
+//                               index:0
+//                             blitter:blitter];
+//          [blitter endEncoding];
+//          [commandBuffer commit];
+
             completion();
             return;
         }
@@ -139,6 +152,7 @@
                     DLog(@"%@: unlock and mark as ready %@", self.label, @(index));
                     [_lockedIndexes removeObject:@(index)];
                     [_stagedIndexes removeIndex:index];
+                    DLog(@"Blitted %@ from stage", @(index));
                 }];
             });
             dispatch_async(dispatch_get_main_queue(), completion);
