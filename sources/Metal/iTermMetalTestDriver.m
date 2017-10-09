@@ -137,9 +137,10 @@
     [dataSource metalDriverWillBeginDrawingFrame];
     for (int y = 0; y < _rows; y++) {
         for (int x = 0; x < _columns; x++) {
-            NSData *c = [_dataSource characterAtScreenCoord:VT100GridCoordMake(x, y)];
+            NSDictionary *attributes;
+            NSData *c = [_dataSource metalCharacterAtScreenCoord:VT100GridCoordMake(x, y) attributes:&attributes];
             [_textRenderer setCharacter:c
-                             attributes:@{}
+                             attributes:attributes
                                   coord:(VT100GridCoord){x,y}
                                 context:context
                                creation:^NSImage * _Nonnull{

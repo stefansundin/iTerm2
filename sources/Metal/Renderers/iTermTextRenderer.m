@@ -153,8 +153,8 @@
                coord:(VT100GridCoord)coord
              context:(nonnull iTermTextRendererContext *)context
             creation:(NSImage *(NS_NOESCAPE ^)(void))creation {
-    NSMutableDictionary *dictionary = [attributes mutableCopy];
-    dictionary[@"unichar"] = character;
+    NSDictionary *dictionary = @{ @"unichar": character };
+    NSColor *color = attributes[NSForegroundColorAttributeName];
 
     // Look it up in the session map. If we find it, we can use it directly. The creation block will not be called.a
     [context enter];
@@ -168,6 +168,7 @@
                                                         const float w = 1.0 / _textureMap.array.atlasSize.width;
                                                         const float h = 1.0 / _textureMap.array.atlasSize.height;
                                                         piu->textureOffset = (vector_float2){ origin.x * w, origin.y * h };
+                                                        piu->color = (vector_float4){ color.redComponent, color.greenComponent, color.blueComponent, color.alphaComponent };
                                                         [context addIndex:index];
                                                     }
                                                     [context leave];

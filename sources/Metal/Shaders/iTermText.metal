@@ -7,8 +7,8 @@ using namespace metal;
 
 typedef struct {
     float4 clipSpacePosition [[position]];
-
     float2 textureCoordinate;
+    float4 color;
 } iTermTextVertexFunctionOutput;
 
 vertex iTermTextVertexFunctionOutput
@@ -28,7 +28,8 @@ iTermTextVertexShader(uint vertexID [[ vertex_id ]],
     out.clipSpacePosition.w = 1;
 
     out.textureCoordinate = vertexArray[vertexID].textureCoordinate + perInstanceUniforms[iid].textureOffset;
-    
+    out.color = perInstanceUniforms[iid].color;
+
     return out;
 }
 
@@ -40,6 +41,8 @@ iTermTextFragmentShader(iTermTextVertexFunctionOutput in [[stage_in]],
 
     const half4 colorSample = texture.sample(textureSampler, in.textureCoordinate);
 
-    return float4(colorSample);
+//    return float4(colorSample) * in.color;
+//    return in.color;
+    return float4(colorSample) * in.color;
 }
 

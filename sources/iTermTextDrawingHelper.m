@@ -46,11 +46,11 @@ static const int kBadgeMargin = 4;
 extern void CGContextSetFontSmoothingStyle(CGContextRef, int);
 extern int CGContextGetFontSmoothingStyle(CGContextRef);
 
-static BOOL CheckFindMatchAtIndex(NSData *findMatches, int index) {
+BOOL CheckFindMatchAtIndex(NSData *findMatches, int index) {
     int theIndex = index / 8;
     int mask = 1 << (index & 7);
     const char *matchBytes = findMatches.bytes;
-    return (theIndex < [findMatches length] && (matchBytes[theIndex] & mask));
+    return !!(theIndex < [findMatches length] && (matchBytes[theIndex] & mask));
 }
 
 @interface iTermTextDrawingHelper() <iTermCursorDelegate>
@@ -291,23 +291,6 @@ typedef struct iTermTextColorContext {
 }
 
 - (NSImage *)imageForCoord:(VT100GridCoord)coord size:(CGSize)size {
-//    return [NSImage imageNamed:@"A"];
-
-    NSImage *image = [[NSImage alloc] initWithSize:size];
-    NSBezierPath *path = [NSBezierPath bezierPath];
-
-    [image lockFocus];
-    [path moveToPoint:NSMakePoint(0,0)];
-    [path lineToPoint:NSMakePoint(size.width - 1, size.height / 2)];
-    [path lineToPoint:NSMakePoint(0, size.height - 1)];
-    [path lineToPoint:NSMakePoint(0,0)];
-
-    [[NSColor redColor] setFill];
-    [path fill];
-    [image unlockFocus];
-
-    return image;
-/*
     NSData *rawMatches = [_delegate drawingHelperMatchesOnLine:coord.y];
     screen_char_t *line = [_delegate drawingHelperLineAtIndex:coord.y];
     iTermBackgroundColorRun backgroundRun = {
@@ -336,7 +319,6 @@ typedef struct iTermTextColorContext {
     [image unlockFocus];
 
     return image;
- */
 }
 
 - (NSInteger)numberOfEquivalentBackgroundColorLinesInRunArrays:(NSArray<iTermBackgroundColorRunsInLine *> *)backgroundRunArrays
@@ -1609,10 +1591,10 @@ typedef struct iTermTextColorContext {
     return maskContext;
 }
 
-static NSColor *iTermTextDrawingHelperGetTextColor(screen_char_t *c,
-                                                   BOOL inUnderlinedRange,
-                                                   int index,
-                                                   iTermTextColorContext *context) {
+NSColor *iTermTextDrawingHelperGetTextColor(screen_char_t *c,
+                                            BOOL inUnderlinedRange,
+                                            int index,
+                                            iTermTextColorContext *context) {
     NSColor *rawColor = nil;
     BOOL isMatch = NO;
     const BOOL needsProcessing = context->backgroundColor && (context->minimumContrast > 0.001 ||

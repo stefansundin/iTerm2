@@ -29,6 +29,8 @@ typedef struct {
 
     // Offset of source texture
     vector_float2 textureOffset;
+
+    vector_float4 color;
 } iTermTextPIU;
 
 typedef struct {

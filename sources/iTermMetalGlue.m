@@ -7,22 +7,48 @@
 
 #import "iTermMetalGlue.h"
 
+#import "iTermColorMap.h"
+#import "iTermSelection.h"
 #import "iTermTextDrawingHelper.h"
 #import "PTYFontInfo.h"
 #import "VT100Screen.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@implementation iTermMetalGlue
+
+@implementation iTermMetalGlue {
+    BOOL _havePreviousCharacterAttributes;
+    screen_char_t _previousCharacterAttributes;
+    NSColor *_lastUnprocessedColor;
+    NSColor *_previousForegroundColor;
+}
 
 #pragma mark - iTermMetalTestDriverDataSource
 
 - (void)metalDriverWillBeginDrawingFrame {
+    _havePreviousCharacterAttributes = NO;
 }
 
-- (NSData *)characterAtScreenCoord:(VT100GridCoord)coord {
+- (NSData *)metalCharacterAtScreenCoord:(VT100GridCoord)coord
+                             attributes:(NSDictionary **)attributes {
     int firstVisibleRow = [self.textDrawingHelper coordRangeForRect:self.textDrawingHelper.delegate.enclosingScrollView.documentVisibleRect].start.y;
     screen_char_t *line = [self.screen getLineAtIndex:firstVisibleRow + coord.y];
+    BOOL selected = [[self.textDrawingHelper.selection selectedIndexesOnLine:coord.y] containsIndex:coord.x];
+
+    BOOL findMatch = NO;
+    NSData *findMatches = [self.textDrawingHelper.delegate drawingHelperMatchesOnLine:coord.y];
+    if (findMatches && !selected) {
+        findMatch = CheckFindMatchAtIndex(findMatches, coord.x);
+    }
+
+    NSColor *textColor = [self textColorForCharacter:&line[coord.x]
+                                                line:coord.y
+                                     backgroundColor:nil  // TODO
+                                            selected:selected
+                                           findMatch:findMatch
+                                   inUnderlinedRange:NO  // TODO
+                                               index:coord.x];
+    *attributes = @{ NSForegroundColorAttributeName: textColor };
     return [NSData dataWithBytesNoCopy:&line[coord.x] length:sizeof(screen_char_t) freeWhenDone:NO];
 }
 
@@ -33,7 +59,6 @@ NS_ASSUME_NONNULL_BEGIN
         return nil;
     }
     
-    iTermTextDrawingHelper *helper = self.textDrawingHelper;
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     CGContextRef ctx = CGBitmapContextCreate(NULL,
                                              size.width,
@@ -68,6 +93,8 @@ NS_ASSUME_NONNULL_BEGIN
 
     return [[NSImage alloc] initWithCGImage:imageRef size:size];
 }
+
+#pragma mark - Letter Drawing
 
 - (void)drawString:(NSString *)string
               font:(NSFont *)font
@@ -124,6 +151,87 @@ NS_ASSUME_NONNULL_BEGIN
         points[i].y = 0;
     }
     CGContextShowGlyphsAtPositions(ctx, glyphs, points, length);
+}
+
+#pragma mark - Color
+
+- (NSColor *)textColorForCharacter:(screen_char_t *)c
+                              line:(int)line
+                   backgroundColor:(nullable NSColor *)backgroundColor
+                          selected:(BOOL)selected
+                         findMatch:(BOOL)findMatch
+                 inUnderlinedRange:(BOOL)inUnderlinedRange
+                             index:(int)index {
+    NSColor *rawColor = nil;
+    BOOL isMatch = NO;
+    iTermColorMap *colorMap = self.textDrawingHelper.colorMap;
+    const BOOL needsProcessing = backgroundColor && (self.textDrawingHelper.minimumContrast > 0.001 ||
+                                                     colorMap.dimmingAmount > 0.001 ||
+                                                     colorMap.mutingAmount > 0.001 ||
+                                                     c->faint);  // faint implies alpha<1 and is faster than getting the alpha component
+
+
+    if (isMatch) {
+        // Black-on-yellow search result.
+        rawColor = [NSColor colorWithCalibratedRed:0 green:0 blue:0 alpha:1];
+        _havePreviousCharacterAttributes = NO;
+    } else if (inUnderlinedRange) {
+        // Blue link text.
+        rawColor = [colorMap colorForKey:kColorMapLink];
+        _havePreviousCharacterAttributes = NO;
+    } else if (selected) {
+        // Selected text.
+        rawColor = [colorMap colorForKey:kColorMapSelectedText];
+        _havePreviousCharacterAttributes = NO;
+    } else if (self.textDrawingHelper.reverseVideo &&
+               ((c->foregroundColor == ALTSEM_DEFAULT && c->foregroundColorMode == ColorModeAlternate) ||
+                (c->foregroundColor == ALTSEM_CURSOR && c->foregroundColorMode == ColorModeAlternate))) {
+           // Reverse video is on. Either is cursor or has default foreground color. Use
+           // background color.
+           rawColor = [colorMap colorForKey:kColorMapBackground];
+           _havePreviousCharacterAttributes = NO;
+    } else if (!_havePreviousCharacterAttributes ||
+               c->foregroundColor != _previousCharacterAttributes.foregroundColor ||
+               c->fgGreen != _previousCharacterAttributes.fgGreen ||
+               c->fgBlue != _previousCharacterAttributes.fgBlue ||
+               c->foregroundColorMode != _previousCharacterAttributes.foregroundColorMode ||
+               c->bold != _previousCharacterAttributes.bold ||
+               c->faint != _previousCharacterAttributes.faint ||
+               !_previousForegroundColor) {
+        // "Normal" case for uncached text color. Recompute the unprocessed color from the character.
+        _previousCharacterAttributes = *c;
+        _havePreviousCharacterAttributes = YES;
+        rawColor = [self.textDrawingHelper.delegate drawingHelperColorForCode:c->foregroundColor
+                                                                        green:c->fgGreen
+                                                                         blue:c->fgBlue
+                                                                    colorMode:c->foregroundColorMode
+                                                                         bold:c->bold
+                                                                        faint:c->faint
+                                                                 isBackground:NO];
+    } else {
+        // Foreground attributes are just like the last character. There is a cached foreground color.
+        if (needsProcessing) {
+            // Process the text color for the current background color, which has changed since
+            // the last cell.
+            rawColor = _lastUnprocessedColor;
+        } else {
+            // Text color is unchanged. Either it's independent of the background color or the
+            // background color has not changed.
+            return _previousForegroundColor;
+        }
+    }
+
+    _lastUnprocessedColor = rawColor;
+
+    NSColor *result = nil;
+    if (needsProcessing) {
+        result = [colorMap processedTextColorForTextColor:rawColor
+                                      overBackgroundColor:backgroundColor];
+    } else {
+        result = rawColor;
+    }
+    _previousForegroundColor = result;
+    return result;
 }
 
 @end

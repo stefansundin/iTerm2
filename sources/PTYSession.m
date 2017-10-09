@@ -3720,7 +3720,9 @@ ITERM_WEAKLY_REFERENCEABLE
     [_view autorelease];
     _view = [newView retain];
     newView.delegate = self;
-    newView.driver.dataSource = _metalGlue;
+    if (@available(macOS 10.11, *)) {
+        newView.driver.dataSource = _metalGlue;
+    }
     [newView updateTitleFrame];
     [[_view findViewController] setDelegate:self];
 }

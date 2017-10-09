@@ -19,6 +19,8 @@
 @class PTYFontInfo;
 @class VT100ScreenMark;
 
+BOOL CheckFindMatchAtIndex(NSData *findMatches, int index);
+
 @protocol iTermTextDrawingHelperDelegate <NSObject>
 
 - (void)drawingHelperDrawBackgroundImageInRect:(NSRect)rect
