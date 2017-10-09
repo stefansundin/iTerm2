@@ -9205,15 +9205,16 @@ ITERM_WEAKLY_REFERENCEABLE
     return [NSData dataWithBytesNoCopy:&line[coord.x] length:sizeof(screen_char_t) freeWhenDone:NO];
 }
 
-- (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord {
+- (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord
+                                      size:(CGSize)size
+                                     scale:(CGFloat)scale {
     iTermTextDrawingHelper *helper = _textview.drawingHelper;
-    CGSize size = helper.cellSize;
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     CGContextRef ctx = CGBitmapContextCreate(NULL,
                                              size.width,
                                              size.height,
                                              8,
-                                             helper.cellSize.width * 4,
+                                             size.width * 4,
                                              colorSpace,
                                              kCGImageAlphaPremultipliedLast);
     CGColorSpaceRelease(colorSpace);
@@ -9231,6 +9232,7 @@ ITERM_WEAKLY_REFERENCEABLE
                 font:font
                 size:size
       baselineOffset:helper.baselineOffset
+               scale:scale
              context:ctx];
 
     CGImageRef imageRef = CGBitmapContextCreateImage(ctx);
@@ -9242,6 +9244,7 @@ ITERM_WEAKLY_REFERENCEABLE
               font:(NSFont *)font
               size:(CGSize)size
     baselineOffset:(CGFloat)baselineOffset
+             scale:(CGFloat)scale
            context:(CGContextRef)ctx {
     NSLog(@"Draw %@ of size %@", string, NSStringFromSize(size));
     if (string.length == 0) {
@@ -9282,8 +9285,8 @@ ITERM_WEAKLY_REFERENCEABLE
     CGContextSetFillColor(ctx, components);
     double y = -baselineOffset;
     // Flip vertically and translate to (x, y).
-    CGContextSetTextMatrix(ctx, CGAffineTransformMake(1.0,  0.0,
-                                                      0, 1.0,
+    CGContextSetTextMatrix(ctx, CGAffineTransformMake(scale,  0.0,
+                                                      0, scale,
                                                       0, y));
 
     CGPoint points[length];

@@ -39,6 +39,7 @@
     int _rows;
     int _columns;
     BOOL _sizeChanged;
+    CGFloat _scale;
 }
 
 - (nullable instancetype)initWithMetalKitView:(nonnull MTKView *)mtkView {
@@ -93,6 +94,7 @@
     _cellSize = cellSize;
     _rows = MAX(1, gridSize.height);
     _columns = MAX(1, gridSize.width);
+    _scale = scale;
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
@@ -138,7 +140,9 @@
                                   coord:(VT100GridCoord){x,y}
                                 context:context
                                creation:^NSImage * _Nonnull{
-                                   return [_dataSource metalImageForCharacterAtCoord:VT100GridCoordMake(x, y)];
+                                   return [_dataSource metalImageForCharacterAtCoord:VT100GridCoordMake(x, y)
+                                                                                size:_cellSize
+                                                                               scale:_scale];
                                }];
             i++;
         }
