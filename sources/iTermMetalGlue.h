@@ -12,10 +12,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @class iTermTextDrawingHelper;
 @class VT100Screen;
+@class PTYTextView;
 
 @interface iTermMetalGlue : NSObject<iTermMetalTestDriverDataSource>
 
-@property (nullable, nonatomic, strong) iTermTextDrawingHelper *textDrawingHelper;
+@property (nullable, nonatomic, strong) PTYTextView *textView;
 @property (nonatomic, strong) VT100Screen *screen;
 
 @end

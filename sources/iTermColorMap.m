@@ -383,4 +383,35 @@ const int kColorMapAnsiBrightModifier = 8;
     return nil;
 }
 
+- (id)copyWithZone:(NSZone *)zone {
+    iTermColorMap *other = [[iTermColorMap alloc] init];
+    if (!other) {
+        return nil;
+    }
+
+    other->_backgroundBrightness = _backgroundBrightness;
+    other->_backgroundRed = _backgroundRed;
+    other->_backgroundGreen = _backgroundGreen;
+    other->_backgroundBlue = _backgroundBlue;
+
+    memmove(other->_lastTextComponents, _lastTextComponents, sizeof(_lastTextComponents));
+    other->_lastTextColor = [_lastTextColor retain];
+
+    memmove(other->_lastBackgroundComponents, _lastBackgroundComponents, sizeof(_lastBackgroundComponents));
+    other->_lastBackgroundColor = [_lastBackgroundColor retain];
+
+    other->_dimOnlyText = _dimOnlyText;
+    other->_dimmingAmount = _dimmingAmount;
+
+    other->_mutingAmount = _mutingAmount;
+
+    other->_minimumContrast = _minimumContrast;
+
+    other->_delegate = _delegate;
+
+    other->_map = [_map mutableCopy];
+
+    return other;
+}
+
 @end

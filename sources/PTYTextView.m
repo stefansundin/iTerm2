@@ -156,9 +156,6 @@ static const int kDragThreshold = 3;
 
     NSDictionary *_markedTextAttributes;
 
-    PTYFontInfo *_primaryFont;
-    PTYFontInfo *_secondaryFont;  // non-ascii font, only used if self.useNonAsciiFont is set.
-
     BOOL _mouseDown;
     BOOL _mouseDragged;
     BOOL _mouseDownOnSelection;
@@ -5860,44 +5857,14 @@ static double EuclideanDistance(NSPoint p1, NSPoint p2) {
                       isComplex:(BOOL)complex
                      renderBold:(BOOL *)renderBold
                    renderItalic:(BOOL *)renderItalic {
-    BOOL isBold = *renderBold && _useBoldFont;
-    BOOL isItalic = *renderItalic && _useItalicFont;
-    *renderBold = NO;
-    *renderItalic = NO;
-    PTYFontInfo* theFont;
-    BOOL usePrimary = !_useNonAsciiFont || (!complex && (ch < 128));
-
-    PTYFontInfo *rootFontInfo = usePrimary ? _primaryFont : _secondaryFont;
-    theFont = rootFontInfo;
-
-    if (isBold && isItalic) {
-        theFont = rootFontInfo.boldItalicVersion;
-        if (!theFont && rootFontInfo.boldVersion) {
-            theFont = rootFontInfo.boldVersion;
-            *renderItalic = YES;
-        } else if (!theFont && rootFontInfo.italicVersion) {
-            theFont = rootFontInfo.italicVersion;
-            *renderBold = YES;
-        } else if (!theFont) {
-            theFont = rootFontInfo;
-            *renderBold = YES;
-            *renderItalic = YES;
-        }
-    } else if (isBold) {
-        theFont = rootFontInfo.boldVersion;
-        if (!theFont) {
-            theFont = rootFontInfo;
-            *renderBold = YES;
-        }
-    } else if (isItalic) {
-        theFont = rootFontInfo.italicVersion;
-        if (!theFont) {
-            theFont = rootFontInfo;
-            *renderItalic = YES;
-        }
-    }
-
-    return theFont;
+    return [PTYFontInfo fontForAsciiCharacter:(!complex && (ch < 128))
+                                    asciiFont:_primaryFont
+                                 nonAsciiFont:_secondaryFont
+                                  useBoldFont:_useBoldFont
+                                useItalicFont:_useItalicFont
+                             usesNonAsciiFont:_useNonAsciiFont
+                                   renderBold:renderBold
+                                 renderItalic:renderItalic];
 }
 
 #pragma mark - Private methods

@@ -1375,7 +1375,7 @@ ITERM_WEAKLY_REFERENCEABLE
 
     _textview = [[PTYTextView alloc] initWithFrame: NSMakeRect(0, [iTermAdvancedSettingsModel terminalVMargin], aSize.width, aSize.height)
                                           colorMap:_colorMap];
-    _metalGlue.textDrawingHelper = _textview.drawingHelper;
+    _metalGlue.textView = _textview;
     _colorMap.dimOnlyText = [iTermPreferences boolForKey:kPreferenceKeyDimOnlyText];
     [_textview setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
     [_textview setFont:[ITAddressBookMgr fontWithDesc:[_profile objectForKey:KEY_NORMAL_FONT]]
@@ -1932,7 +1932,7 @@ ITERM_WEAKLY_REFERENCEABLE
     [_textview setDelegate:nil];
     [_textview removeFromSuperview];
     _textview = nil;
-    _metalGlue.textDrawingHelper = nil;
+    _metalGlue.textView = nil;
 }
 
 - (void)jumpToLocationWhereCurrentStatusChanged {

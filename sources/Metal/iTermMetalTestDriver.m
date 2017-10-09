@@ -245,7 +245,7 @@
             DLog(@"Completed");
             [_textRenderer releaseContext:context];
             NSTimeInterval end = [NSDate timeIntervalSinceReferenceDate];
-            DLog(@"%@ fps", @(1.0 / (end - start)));
+            NSLog(@"%@ fps", @(1.0 / (end - start)));
             _busy = NO;
         }];
 

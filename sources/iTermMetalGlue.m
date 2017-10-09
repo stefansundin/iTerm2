@@ -12,42 +12,73 @@
 #import "iTermSelection.h"
 #import "iTermTextDrawingHelper.h"
 #import "PTYFontInfo.h"
+#import "PTYTextView.h"
 #import "VT100Screen.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 
 @implementation iTermMetalGlue {
+    BOOL _skip;
     BOOL _havePreviousCharacterAttributes;
     screen_char_t _previousCharacterAttributes;
     NSColor *_lastUnprocessedColor;
     NSColor *_previousForegroundColor;
     NSMutableArray<NSData *> *_lines;
+    NSMutableArray<NSIndexSet *> *_selectedIndexes;
+    NSMutableArray<NSData *> *_matches;
+    iTermColorMap *_colorMap;
+    PTYFontInfo *_asciiFont;
+    PTYFontInfo *_nonAsciiFont;
+    BOOL _useBoldFont;
+    BOOL _useItalicFont;
+    BOOL _useNonAsciiFont;
+    BOOL _reverseVideo;
+    BOOL _useBrightBold;
 }
 
 #pragma mark - iTermMetalTestDriverDataSource
 
 - (void)metalDriverWillBeginDrawingFrame {
+    if (self.textView.drawingHelper.delegate == nil) {
+        _skip = YES;
+        return;
+    }
+    _skip = NO;
+
     _havePreviousCharacterAttributes = NO;
 
     // Copy lines from model. Always use these for consistency. I should also copy the color map
     // and any other data dependencies.
     _lines = [NSMutableArray array];
-    VT100GridCoordRange coordRange = [self.textDrawingHelper coordRangeForRect:self.textDrawingHelper.delegate.enclosingScrollView.documentVisibleRect];
+    _selectedIndexes = [NSMutableArray array];
+    _matches = [NSMutableArray array];
+    VT100GridCoordRange coordRange = [self.textView.drawingHelper coordRangeForRect:self.textView.enclosingScrollView.documentVisibleRect];
     const int width = coordRange.end.x - coordRange.start.x;
     for (int i = coordRange.start.y; i < coordRange.end.y; i++) {
         screen_char_t *line = [self.screen getLineAtIndex:i];
         [_lines addObject:[NSData dataWithBytes:line length:sizeof(screen_char_t) * width]];
+        [_selectedIndexes addObject:[self.textView.selection selectedIndexesOnLine:i]];
+        [_matches addObject:[self.textView.drawingHelper.delegate drawingHelperMatchesOnLine:i] ?: [NSData data]];
     }
+
+    _colorMap = [self.textView.colorMap copy];
+    _asciiFont = self.textView.primaryFont;
+    _nonAsciiFont = self.textView.secondaryFont;
+    _useBoldFont = self.textView.useBoldFont;
+    _useItalicFont = self.textView.useItalicFont;
+    _useNonAsciiFont = self.textView.useNonAsciiFont;
+    _reverseVideo = self.textView.dataSource.terminal.reverseVideo;
+    _useBrightBold = self.textView.useBrightBold;
 }
 
 - (id)metalCharacterAtScreenCoord:(VT100GridCoord)coord
                        attributes:(NSDictionary **)attributes {
     screen_char_t *line = (screen_char_t *)_lines[coord.y].bytes;
-    BOOL selected = [[self.textDrawingHelper.selection selectedIndexesOnLine:coord.y] containsIndex:coord.x];
+    BOOL selected = [_selectedIndexes[coord.y] containsIndex:coord.x];
 
     BOOL findMatch = NO;
-    NSData *findMatches = [self.textDrawingHelper.delegate drawingHelperMatchesOnLine:coord.y];
+    NSData *findMatches = _matches[coord.y];
     if (findMatches && !selected) {
         findMatch = CheckFindMatchAtIndex(findMatches, coord.x);
     }
@@ -69,7 +100,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord
                                       size:(CGSize)size
                                      scale:(CGFloat)scale {
-    if (self.textDrawingHelper.delegate == nil) {
+    if (_skip) {
         return nil;
     }
     
@@ -90,10 +121,14 @@ NS_ASSUME_NONNULL_BEGIN
     screen_char_t *sct = line + coord.x;
     BOOL fakeBold = NO;
     BOOL fakeItalic = NO;
-    PTYFontInfo *fontInfo = [self.textDrawingHelper.delegate drawingHelperFontForChar:sct->code
-                                                                            isComplex:sct->complexChar
-                                                                           renderBold:&fakeBold
-                                                                         renderItalic:&fakeItalic];
+    PTYFontInfo *fontInfo = [PTYFontInfo fontForAsciiCharacter:(!sct->complexChar && (sct->code < 128))
+                                                     asciiFont:_asciiFont
+                                                  nonAsciiFont:_nonAsciiFont
+                                                   useBoldFont:_useBoldFont
+                                                 useItalicFont:_useItalicFont
+                                              usesNonAsciiFont:_useNonAsciiFont
+                                                    renderBold:&fakeBold
+                                                  renderItalic:&fakeItalic];
     NSFont *font = fontInfo.font;
     assert(font);
     [self drawString:ScreenCharToStr(sct)
@@ -178,8 +213,8 @@ NS_ASSUME_NONNULL_BEGIN
                              index:(int)index {
     NSColor *rawColor = nil;
     BOOL isMatch = NO;
-    iTermColorMap *colorMap = self.textDrawingHelper.colorMap;
-    const BOOL needsProcessing = backgroundColor && (self.textDrawingHelper.minimumContrast > 0.001 ||
+    iTermColorMap *colorMap = _colorMap;
+    const BOOL needsProcessing = backgroundColor && (colorMap.minimumContrast > 0.001 ||
                                                      colorMap.dimmingAmount > 0.001 ||
                                                      colorMap.mutingAmount > 0.001 ||
                                                      c->faint);  // faint implies alpha<1 and is faster than getting the alpha component
@@ -197,7 +232,7 @@ NS_ASSUME_NONNULL_BEGIN
         // Selected text.
         rawColor = [colorMap colorForKey:kColorMapSelectedText];
         _havePreviousCharacterAttributes = NO;
-    } else if (self.textDrawingHelper.reverseVideo &&
+    } else if (_reverseVideo &&
                ((c->foregroundColor == ALTSEM_DEFAULT && c->foregroundColorMode == ColorModeAlternate) ||
                 (c->foregroundColor == ALTSEM_CURSOR && c->foregroundColorMode == ColorModeAlternate))) {
            // Reverse video is on. Either is cursor or has default foreground color. Use
@@ -215,13 +250,13 @@ NS_ASSUME_NONNULL_BEGIN
         // "Normal" case for uncached text color. Recompute the unprocessed color from the character.
         _previousCharacterAttributes = *c;
         _havePreviousCharacterAttributes = YES;
-        rawColor = [self.textDrawingHelper.delegate drawingHelperColorForCode:c->foregroundColor
-                                                                        green:c->fgGreen
-                                                                         blue:c->fgBlue
-                                                                    colorMode:c->foregroundColorMode
-                                                                         bold:c->bold
-                                                                        faint:c->faint
-                                                                 isBackground:NO];
+        rawColor = [self colorForCode:c->foregroundColor
+                                green:c->fgGreen
+                                 blue:c->fgBlue
+                            colorMode:c->foregroundColorMode
+                                 bold:c->bold
+                                faint:c->faint
+                         isBackground:NO];
     } else {
         // Foreground attributes are just like the last character. There is a cached foreground color.
         if (needsProcessing) {
@@ -246,6 +281,91 @@ NS_ASSUME_NONNULL_BEGIN
     }
     _previousForegroundColor = result;
     return result;
+}
+
+#warning TODO: This was copied form PTYTextView. Make it a clas method and share it.
+- (NSColor *)colorForCode:(int)theIndex
+                    green:(int)green
+                     blue:(int)blue
+                colorMode:(ColorMode)theMode
+                     bold:(BOOL)isBold
+                    faint:(BOOL)isFaint
+             isBackground:(BOOL)isBackground {
+    iTermColorMapKey key = [self colorMapKeyForCode:theIndex
+                                              green:green
+                                               blue:blue
+                                          colorMode:theMode
+                                               bold:isBold
+                                       isBackground:isBackground];
+    NSColor *color;
+    iTermColorMap *colorMap = _colorMap;
+    if (isBackground) {
+        color = [colorMap colorForKey:key];
+    } else {
+        color = [_colorMap colorForKey:key];
+        if (isFaint) {
+            color = [color colorWithAlphaComponent:0.5];
+        }
+    }
+    return color;
+}
+
+- (iTermColorMapKey)colorMapKeyForCode:(int)theIndex
+                                 green:(int)green
+                                  blue:(int)blue
+                             colorMode:(ColorMode)theMode
+                                  bold:(BOOL)isBold
+                          isBackground:(BOOL)isBackground {
+    BOOL isBackgroundForDefault = isBackground;
+    switch (theMode) {
+        case ColorModeAlternate:
+            switch (theIndex) {
+                case ALTSEM_SELECTED:
+                    if (isBackground) {
+                        return kColorMapSelection;
+                    } else {
+                        return kColorMapSelectedText;
+                    }
+                case ALTSEM_CURSOR:
+                    if (isBackground) {
+                        return kColorMapCursor;
+                    } else {
+                        return kColorMapCursorText;
+                    }
+                case ALTSEM_REVERSED_DEFAULT:
+                    isBackgroundForDefault = !isBackgroundForDefault;
+                    // Fall through.
+                case ALTSEM_DEFAULT:
+                    if (isBackgroundForDefault) {
+                        return kColorMapBackground;
+                    } else {
+                        if (isBold && _useBrightBold) {
+                            return kColorMapBold;
+                        } else {
+                            return kColorMapForeground;
+                        }
+                    }
+            }
+            break;
+        case ColorMode24bit:
+            return [iTermColorMap keyFor8bitRed:theIndex green:green blue:blue];
+        case ColorModeNormal:
+            // Render bold text as bright. The spec (ECMA-48) describes the intense
+            // display setting (esc[1m) as "bold or bright". We make it a
+            // preference.
+            if (isBold &&
+                _useBrightBold &&
+                (theIndex < 8) &&
+                !isBackground) { // Only colors 0-7 can be made "bright".
+                theIndex |= 8;  // set "bright" bit.
+            }
+            return kColorMap8bitBase + (theIndex & 0xff);
+
+        case ColorModeInvalid:
+            return kColorMapInvalid;
+    }
+    NSAssert(ok, @"Bogus color mode %d", (int)theMode);
+    return kColorMapInvalid;
 }
 
 @end

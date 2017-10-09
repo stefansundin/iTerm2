@@ -67,7 +67,7 @@ extern const int kColorMap24bitBase;
 // self.dimmingAmount towards a neutral gray, and is used to indicate a session's inactivity. Muting
 // moves colors towards the background color and is used by the "cursor boost" feature to make the
 // cursor stand out more.
-@interface iTermColorMap : NSObject
+@interface iTermColorMap : NSObject<NSCopying>
 
 @property(nonatomic, assign) BOOL dimOnlyText;
 @property(nonatomic, assign) double dimmingAmount;
