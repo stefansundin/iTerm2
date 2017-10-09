@@ -152,7 +152,7 @@
           attributes:(NSDictionary *)attributes
                coord:(VT100GridCoord)coord
              context:(nonnull iTermTextRendererContext *)context
-            creation:(NSImage *(^)(void))creation {
+            creation:(NSImage *(NS_NOESCAPE ^)(void))creation {
     NSMutableDictionary *dictionary = [attributes mutableCopy];
     dictionary[@"unichar"] = character;
 

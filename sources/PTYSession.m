@@ -1302,7 +1302,9 @@ ITERM_WEAKLY_REFERENCEABLE
     NSDictionary *liveArrangement = arrangement[SESSION_ARRANGEMENT_LIVE_SESSION];
     if (liveArrangement) {
         SessionView *liveView = [[[SessionView alloc] initWithFrame:sessionView.frame] autorelease];
-        liveView.driver.dataSource = aSession;
+        if (@available(macOS 10.11, *)) {
+            liveView.driver.dataSource = aSession;
+        }
         [delegate addHiddenLiveView:liveView];
         aSession.liveSession = [self sessionFromArrangement:liveArrangement
                                                      inView:liveView
@@ -1354,7 +1356,9 @@ ITERM_WEAKLY_REFERENCEABLE
     // Allocate the root per-session view.
     if (!_view) {
         self.view = [[[SessionView alloc] initWithFrame:NSMakeRect(0, 0, aRect.size.width, aRect.size.height)] autorelease];
-        self.view.driver.dataSource = self;
+        if (@available(macOS 10.11, *)) {
+            self.view.driver.dataSource = self;
+        }
         [[_view findViewController] setDelegate:self];
     }
 
@@ -1417,9 +1421,11 @@ ITERM_WEAKLY_REFERENCEABLE
     [_view updateScrollViewFrame];
     [self useTransparencyDidChange];
 
-    [_view.driver setCellSize:CGSizeMake(_textview.charWidth, _textview.lineHeight)
-                     gridSize:_screen.currentGrid.size
-                        scale:_view.window.screen.backingScaleFactor];
+    if (@available(macOS 10.11, *)) {
+        [_view.driver setCellSize:CGSizeMake(_textview.charWidth, _textview.lineHeight)
+                         gridSize:_screen.currentGrid.size
+                            scale:_view.window.screen.backingScaleFactor];
+    }
 
     return YES;
 }
@@ -1509,9 +1515,11 @@ ITERM_WEAKLY_REFERENCEABLE
         [_delegate sessionBelongsToVisibleTab]) {
         [self beginTailFind];
     }
-    [_view.driver setCellSize:CGSizeMake(_textview.charWidth, _textview.lineHeight)
-                     gridSize:_screen.currentGrid.size
-                        scale:_view.window.screen.backingScaleFactor];
+    if (@available(macOS 10.11, *)) {
+        [_view.driver setCellSize:CGSizeMake(_textview.charWidth, _textview.lineHeight)
+                         gridSize:_screen.currentGrid.size
+                            scale:_view.window.screen.backingScaleFactor];
+    }
 }
 
 - (void)setSplitSelectionMode:(SplitSelectionMode)mode move:(BOOL)move {
@@ -6159,9 +6167,11 @@ ITERM_WEAKLY_REFERENCEABLE
         [self notifyTmuxFontChange];
     }
     [_view updateScrollViewFrame];
-    [_view.driver setCellSize:CGSizeMake(_textview.charWidth, _textview.lineHeight)
-                     gridSize:_screen.currentGrid.size
-                        scale:_view.window.screen.backingScaleFactor];
+    if (@available(macOS 10.11, *)) {
+        [_view.driver setCellSize:CGSizeMake(_textview.charWidth, _textview.lineHeight)
+                         gridSize:_screen.currentGrid.size
+                            scale:_view.window.screen.backingScaleFactor];
+}
 }
 
 - (BOOL)textViewHasBackgroundImage {
@@ -8925,9 +8935,11 @@ ITERM_WEAKLY_REFERENCEABLE
 }
 
 - (void)sessionViewDidChangeWindow {
-    [_view.driver setCellSize:CGSizeMake(_textview.charWidth, _textview.lineHeight)
-                     gridSize:_screen.currentGrid.size
-                        scale:_view.window.screen.backingScaleFactor];
+    if (@available(macOS 10.11, *)) {
+        [_view.driver setCellSize:CGSizeMake(_textview.charWidth, _textview.lineHeight)
+                         gridSize:_screen.currentGrid.size
+                            scale:_view.window.screen.backingScaleFactor];
+    }
 }
 
 #pragma mark - iTermCoprocessDelegate

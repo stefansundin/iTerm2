@@ -129,7 +129,7 @@
 @property(nonatomic, assign) id<iTermSessionViewDelegate> delegate;
 @property(nonatomic, readonly) PTYScrollView *scrollview;
 @property(nonatomic, assign) BOOL useSubviewWithLayer;
-@property(nonatomic, readonly) iTermMetalTestDriver *driver;
+@property(nonatomic, readonly) iTermMetalTestDriver *driver NS_AVAILABLE_MAC(10_11);
 
 + (double)titleHeight;
 + (NSDate*)lastResizeDate;

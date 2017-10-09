@@ -87,8 +87,8 @@ static NSDate* lastResizeDate_;
     NSView *_hoverURLView;
     NSTextField *_hoverURLTextField;
 
-    iTermMetalTestDriver *_driver;
-    MTKView *_metalView;
+    iTermMetalTestDriver *_driver NS_AVAILABLE_MAC(10_11);
+    MTKView *_metalView NS_AVAILABLE_MAC(10_11);
 }
 
 + (double)titleHeight {

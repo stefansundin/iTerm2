@@ -30,7 +30,7 @@ NS_ASSUME_NONNULL_BEGIN
           attributes:(NSDictionary *)attributes
                coord:(VT100GridCoord)coord
              context:(iTermTextRendererContext *)context
-            creation:(NSImage *(^)(void))creation;
+            creation:(NSImage *(NS_NOESCAPE ^)(void))creation;
 
 - (void)releaseContext:(iTermTextRendererContext *)context;
 
