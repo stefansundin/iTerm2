@@ -9283,7 +9283,7 @@ ITERM_WEAKLY_REFERENCEABLE
     CGContextSetFillColorSpace(ctx, CGColorSpaceCreateWithName(kCGColorSpaceSRGB));
     const CGFloat components[4] = { 1.0, 1.0, 1.0, 1.0 };
     CGContextSetFillColor(ctx, components);
-    double y = -baselineOffset;
+    double y = -baselineOffset * scale;
     // Flip vertically and translate to (x, y).
     CGContextSetTextMatrix(ctx, CGAffineTransformMake(scale,  0.0,
                                                       0, scale,
