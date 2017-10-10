@@ -1567,7 +1567,7 @@
 		A67960CC1F81FCB6008A42BC /* iTermMetalCellRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = A679608E1F81FC95008A42BC /* iTermMetalCellRenderer.m */; };
 		A67960CD1F81FCB6008A42BC /* iTermMetalRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = A679608F1F81FC95008A42BC /* iTermMetalRenderer.m */; };
 		A67960CE1F81FCB6008A42BC /* iTermTextureArray.m in Sources */ = {isa = PBXBuildFile; fileRef = A67960911F81FC95008A42BC /* iTermTextureArray.m */; };
-		A67960CF1F81FCB6008A42BC /* iTermTextureMap.m in Sources */ = {isa = PBXBuildFile; fileRef = A679608B1F81FC95008A42BC /* iTermTextureMap.m */; };
+		A67960CF1F81FCB6008A42BC /* iTermTextureMap.mm in Sources */ = {isa = PBXBuildFile; fileRef = A679608B1F81FC95008A42BC /* iTermTextureMap.mm */; };
 		A67960D01F81FCBB008A42BC /* iTermBackgroundColorRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = A67960A51F81FC9D008A42BC /* iTermBackgroundColorRenderer.m */; };
 		A67960D11F81FCBB008A42BC /* iTermBackgroundImageRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = A679609F1F81FC9C008A42BC /* iTermBackgroundImageRenderer.m */; };
 		A67960D21F81FCBB008A42BC /* iTermBadgeRenderer.m in Sources */ = {isa = PBXBuildFile; fileRef = A67960A41F81FC9D008A42BC /* iTermBadgeRenderer.m */; };
@@ -3420,6 +3420,7 @@
 		A647E3B618C5884600450FA1 /* iTermObjectPool.m */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 4; lastKnownFileType = sourcecode.c.objc; path = iTermObjectPool.m; sourceTree = "<group>"; tabWidth = 4; };
 		A64AB26219B97B670033DB9C /* iTerm2ForApplescriptTesting-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "iTerm2ForApplescriptTesting-Info.plist"; sourceTree = "<group>"; };
 		A656AE4B1DBBE1CE00CE8448 /* libaprutil-1.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libaprutil-1.tbd"; path = "usr/lib/libaprutil-1.tbd"; sourceTree = SDKROOT; };
+		A656E9671F8C994200158128 /* iTermMetalGlyphKey.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iTermMetalGlyphKey.h; sourceTree = "<group>"; };
 		A65871671D85E6700061CEEE /* PFMoveApplication.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = PFMoveApplication.m; path = LetsMove/PFMoveApplication.m; sourceTree = "<group>"; };
 		A65871681D85E6700061CEEE /* PFMoveApplication.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PFMoveApplication.h; path = LetsMove/PFMoveApplication.h; sourceTree = "<group>"; };
 		A65943C91F83382B00598B1E /* iTermMetalClipView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = iTermMetalClipView.h; path = Metal/Support/iTermMetalClipView.h; sourceTree = "<group>"; };
@@ -3506,7 +3507,7 @@
 		A67778B31CFD4A7300DEED78 /* iTermHotKeyProfileBindingController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = iTermHotKeyProfileBindingController.m; sourceTree = "<group>"; };
 		A67778B61CFF40AC00DEED78 /* iTermNSArrayCategoryTest.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = iTermNSArrayCategoryTest.m; sourceTree = "<group>"; };
 		A679608A1F81FC94008A42BC /* iTermMetalRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iTermMetalRenderer.h; path = Metal/Infrastructure/iTermMetalRenderer.h; sourceTree = "<group>"; };
-		A679608B1F81FC95008A42BC /* iTermTextureMap.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iTermTextureMap.m; path = Metal/Infrastructure/iTermTextureMap.m; sourceTree = "<group>"; };
+		A679608B1F81FC95008A42BC /* iTermTextureMap.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iTermTextureMap.mm; path = Metal/Infrastructure/iTermTextureMap.mm; sourceTree = "<group>"; };
 		A679608C1F81FC95008A42BC /* iTermTextureArray.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iTermTextureArray.h; path = Metal/Infrastructure/iTermTextureArray.h; sourceTree = "<group>"; };
 		A679608D1F81FC95008A42BC /* iTermMetalCellRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iTermMetalCellRenderer.h; path = Metal/Infrastructure/iTermMetalCellRenderer.h; sourceTree = "<group>"; };
 		A679608E1F81FC95008A42BC /* iTermMetalCellRenderer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iTermMetalCellRenderer.m; path = Metal/Infrastructure/iTermMetalCellRenderer.m; sourceTree = "<group>"; };
@@ -5442,6 +5443,7 @@
 			children = (
 				A65943C91F83382B00598B1E /* iTermMetalClipView.h */,
 				A65943CA1F83382B00598B1E /* iTermMetalClipView.m */,
+				A656E9671F8C994200158128 /* iTermMetalGlyphKey.h */,
 			);
 			name = Support;
 			sourceTree = "<group>";
@@ -5532,7 +5534,7 @@
 				A679608E1F81FC95008A42BC /* iTermMetalCellRenderer.m */,
 				A679608F1F81FC95008A42BC /* iTermMetalRenderer.m */,
 				A67960911F81FC95008A42BC /* iTermTextureArray.m */,
-				A679608B1F81FC95008A42BC /* iTermTextureMap.m */,
+				A679608B1F81FC95008A42BC /* iTermTextureMap.mm */,
 			);
 			name = Infrastructure;
 			sourceTree = "<group>";
@@ -8746,7 +8748,7 @@
 				A66719641DCE3772000CE608 /* iTermSocket.m in Sources */,
 				A67960D41F81FCBB008A42BC /* iTermCursorGuideRenderer.m in Sources */,
 				A65943CC1F83382B00598B1E /* iTermMetalClipView.m in Sources */,
-				A67960CF1F81FCB6008A42BC /* iTermTextureMap.m in Sources */,
+				A67960CF1F81FCB6008A42BC /* iTermTextureMap.mm in Sources */,
 				A62A1F771E711BC000363EE9 /* iTermHelpMessageViewController.m in Sources */,
 				A62A1F721E6E724B00363EE9 /* iTermMenuOpener.m in Sources */,
 				A65EC0301F31800300AC0A6B /* iTermUpdateCadenceController.m in Sources */,
@@ -9383,6 +9385,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2;
 				PRODUCT_NAME = iTerm2;
@@ -9452,6 +9455,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2.applescript;
 				PRODUCT_NAME = iTerm2ForApplescriptTesting;
@@ -9517,6 +9521,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2.applescript;
 				PRODUCT_NAME = iTerm2ForApplescriptTesting;
@@ -9580,6 +9585,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2.applescript;
 				PRODUCT_NAME = iTerm2ForApplescriptTesting;
@@ -9658,6 +9664,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -9725,6 +9732,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -9793,6 +9801,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -10567,6 +10576,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2;
 				PRODUCT_NAME = iTerm2;
@@ -10635,6 +10645,7 @@
 					"-laprutil-1",
 					"-licucore",
 					"-ObjC",
+					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.googlecode.iterm2;
 				PRODUCT_NAME = iTerm2;

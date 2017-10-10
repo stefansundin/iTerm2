@@ -72,8 +72,8 @@ NS_ASSUME_NONNULL_BEGIN
     _useBrightBold = self.textView.useBrightBold;
 }
 
-- (id)metalCharacterAtScreenCoord:(VT100GridCoord)coord
-                       attributes:(NSDictionary **)attributes {
+- (iTermMetalGlyphKey)metalCharacterAtScreenCoord:(VT100GridCoord)coord
+                                       attributes:(iTermMetalGlyphAttributes *)attributes {
     screen_char_t *line = (screen_char_t *)_lines[coord.y].bytes;
     BOOL selected = [_selectedIndexes[coord.y] containsIndex:coord.x];
 
@@ -90,11 +90,17 @@ NS_ASSUME_NONNULL_BEGIN
                                            findMatch:findMatch
                                    inUnderlinedRange:NO  // TODO
                                                index:coord.x];
-    *attributes = @{ NSForegroundColorAttributeName: textColor };
+    [textColor getComponents:attributes->foregroundColor];
     // Also need to take into account which font will be used (bold, italic, nonascii, etc.) plus
     // box drawing and images. If I want to support subpixel rendering then background color has
     // to be a factor also.
-    return ScreenCharToStr(&line[coord.x]);
+    iTermMetalGlyphKey glyphKey = {
+        .code = line[coord.x].code,
+        .isComplex = line[coord.x].complexChar,
+        .image = line[coord.x].image,
+        .boxDrawing = NO
+    };
+    return glyphKey;
 }
 
 - (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord

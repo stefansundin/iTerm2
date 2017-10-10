@@ -1,4 +1,5 @@
 #import "iTermMetalCellRenderer.h"
+#import "iTermMetalGlyphKey.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -6,6 +7,8 @@ NS_ASSUME_NONNULL_BEGIN
 @class iTermTextRendererContext;
 
 @interface iTermTextRendererContext : NSObject
+- (instancetype)initWithQueue:(dispatch_queue_t)queue NS_DESIGNATED_INITIALIZER;
+- (instancetype)init NS_UNAVAILABLE;
 @end
 
 // Usage:
@@ -20,14 +23,14 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) iTermTextureMap *globalTextureMap;
 @property (nonatomic, readonly) BOOL preparing;
 
-- (nullable instancetype)initWithDevice:(id<MTLDevice>)device NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithDevice:(id<MTLDevice>)device NS_DESIGNATED_INITIALIZER;
 - (instancetype)init NS_UNAVAILABLE;
 
 - (void)prepareForDrawWithContext:(iTermTextRendererContext *)context
                        completion:(void (^)(void))completion;
 
-- (void)setCharacter:(id)character
-          attributes:(NSDictionary *)attributes
+- (void)setCharacter:(iTermMetalGlyphKey *)character
+          attributes:(iTermMetalGlyphAttributes *)attributes
                coord:(VT100GridCoord)coord
              context:(iTermTextRendererContext *)context
             creation:(NSImage *(NS_NOESCAPE ^)(void))creation;

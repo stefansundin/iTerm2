@@ -1,4 +1,5 @@
 #import "VT100GridTypes.h"
+#include "iTermMetalGlyphKey.h"
 
 @import MetalKit;
 
@@ -6,8 +7,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol iTermMetalTestDriverDataSource<NSObject>
 
-- (id)metalCharacterAtScreenCoord:(VT100GridCoord)coord
-                       attributes:(NSDictionary * _Nonnull * _Nonnull)attributes;
+- (iTermMetalGlyphKey)metalCharacterAtScreenCoord:(VT100GridCoord)coord
+                                       attributes:(iTermMetalGlyphAttributes *)attributes;
 
 - (void)metalDriverWillBeginDrawingFrame;
 - (NSImage *)metalImageForCharacterAtCoord:(VT100GridCoord)coord

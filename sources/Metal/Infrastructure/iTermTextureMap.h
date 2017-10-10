@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
+#import "iTermMetalGlyphKey.h"
 
 @class iTermTextureArray;
 
@@ -16,20 +17,12 @@
                       capacity:(NSInteger)capacity NS_DESIGNATED_INITIALIZER;
 - (instancetype)init NS_UNAVAILABLE;
 
-- (void)findOrAllocateIndexOfLockedTextureWithKey:(id)key
-                                         creation:(NSImage *(^)(void))creation
-                                       completion:(void (^)(NSInteger index))completion;
+- (NSInteger)findOrAllocateIndexOfLockedTextureWithKey:(iTermMetalGlyphKey *)key
+                                              creation:(NSImage *(^)(void))creation;
 
 - (void)unlockTextureWithIndex:(NSInteger)index;
 
-// The completion block is called on a private queue.
 - (void)blitNewTexturesFromStagingAreaWithCompletion:(void (^)(void))completion;
 
-// Source indexes should be locked. This WILL unlock them.
-// Destination indexes should be locked. This will NOT unlock them.
-// The completion block could be called on any queue. If it returns nil then nothing is staged.
-- (void)blitIndexes:(NSDictionary<NSNumber *, NSNumber *> *)indexes
-       toStageOfMap:(iTermTextureMap *)destination
-         completion:(void (^)(void))completion;
 
 @end

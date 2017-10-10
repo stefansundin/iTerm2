@@ -16,6 +16,10 @@
 
 #import "iTermShaderTypes.h"
 
+@interface iTermMetalTestDriver()
+@property (atomic) BOOL busy;
+@end
+
 @implementation iTermMetalTestDriver {
     iTermBackgroundImageRenderer *_backgroundImageRenderer;
     iTermBackgroundColorRenderer *_backgroundColorRenderer;
@@ -35,12 +39,13 @@
     // The current size of our view so we can use this in our render pipeline
     vector_uint2 _viewportSize;
     CGSize _cellSize;
-    int _iteration;
-    BOOL _busy;
+//    int _iteration;
     int _rows;
     int _columns;
     BOOL _sizeChanged;
     CGFloat _scale;
+
+    dispatch_queue_t _queue;
 }
 
 - (nullable instancetype)initWithMetalKitView:(nonnull MTKView *)mtkView {
@@ -57,9 +62,9 @@
         _barCursorRenderer = [iTermCursorRenderer newBarCursorRendererWithDevice:mtkView.device];
         _blockCursorRenderer = [iTermCursorRenderer newBlockCursorRendererWithDevice:mtkView.device];
         _copyModeCursorRenderer = [iTermCursorRenderer newCopyModeCursorRendererWithDevice:mtkView.device];
-        [self setCellSize:CGSizeMake(30, 30) gridSize:VT100GridSizeMake(80, 25) scale:1];
-
         _commandQueue = [mtkView.device newCommandQueue];
+        _queue = dispatch_queue_create("com.iterm2.metalDriver", NULL);
+        [self setCellSize:CGSizeMake(30, 30) gridSize:VT100GridSizeMake(80, 25) scale:1];
     }
 
     return self;
@@ -84,64 +89,61 @@
 }
 
 - (void)setCellSize:(CGSize)cellSize gridSize:(VT100GridSize)gridSize scale:(CGFloat)scale {
-    if (scale == 0) {
-        NSLog(@"Warning: scale is 0");
-    }
     scale = MAX(1, scale);
     cellSize.width *= scale;
     cellSize.height *= scale;
-    NSLog(@"Cell size is now %@x%@, grid size is now %@x%@", @(cellSize.width), @(cellSize.height), @(gridSize.width), @(gridSize.height));
-    _sizeChanged = YES;
-    _cellSize = cellSize;
-    _rows = MAX(1, gridSize.height);
-    _columns = MAX(1, gridSize.width);
-    _scale = scale;
+    dispatch_async(_queue, ^{
+        if (scale == 0) {
+            NSLog(@"Warning: scale is 0");
+        }
+        NSLog(@"Cell size is now %@x%@, grid size is now %@x%@", @(cellSize.width), @(cellSize.height), @(gridSize.width), @(gridSize.height));
+        _sizeChanged = YES;
+        _cellSize = cellSize;
+        _rows = MAX(1, gridSize.height);
+        _columns = MAX(1, gridSize.width);
+        _scale = scale;
+    });
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size {
-    // Save the size of the drawable as we'll pass these
-    //   values to our vertex shader when we draw
-    _viewportSize.x = size.width;
-    _viewportSize.y = size.height;
-//
-//    CGSize usableSize = CGSizeMake(_viewportSize.x - MARGIN_WIDTH * 2,
-//                                   _viewportSize.y - TOP_MARGIN - BOTTOM_MARGIN);
-//    [self setSize:CGSizeMake(usableSize.width / _cellSize.width,
-//                             usableSize.height / _cellSize.height)];
+    dispatch_async(_queue, ^{
+        // Save the size of the drawable as we'll pass these
+        //   values to our vertex shader when we draw
+        _viewportSize.x = size.width;
+        _viewportSize.y = size.height;
+    });
 }
 
-- (iTermTextRendererContext *)rotate {
-    _iteration++;
+- (iTermTextRendererContext *)updateRenderersWithDataSource:(id<iTermMetalTestDriverDataSource>)dataSource {
+//    _iteration++;
 
-    [_blockCursorRenderer setCoord:(VT100GridCoord){ 1, 1 }];
-    [_underlineCursorRenderer setCoord:(VT100GridCoord){ 2, 2 }];
-    [_barCursorRenderer setCoord:(VT100GridCoord){ 3, 3 }];
-    [_copyModeCursorRenderer setCoord:(VT100GridCoord){4, 4}];
-    _copyModeCursorRenderer.selecting = !((_iteration / 30) % 2);
+//    [_blockCursorRenderer setCoord:(VT100GridCoord){ 1, 1 }];
+//    [_underlineCursorRenderer setCoord:(VT100GridCoord){ 2, 2 }];
+//    [_barCursorRenderer setCoord:(VT100GridCoord){ 3, 3 }];
+//    [_copyModeCursorRenderer setCoord:(VT100GridCoord){4, 4}];
+//    _copyModeCursorRenderer.selecting = !((_iteration / 30) % 2);
+//
+//    [_cursorGuideRenderer setRow:(_iteration / 10) % _rows];
+//
+//    [_markRenderer setMarkStyle:iTermMarkStyleNone
+//                            row:((_iteration + 0) % _rows)];
+//    [_markRenderer setMarkStyle:iTermMarkStyleSuccess
+//                            row:((_iteration + 1) % _rows)];
+//    [_markRenderer setMarkStyle:iTermMarkStyleFailure
+//                            row:((_iteration + 2) % _rows)];
+//    [_markRenderer setMarkStyle:iTermMarkStyleOther
+//                            row:((_iteration + 3) % _rows)];
 
-    [_cursorGuideRenderer setRow:(_iteration / 10) % _rows];
+    iTermTextRendererContext *context = [[iTermTextRendererContext alloc] initWithQueue:_queue];
 
-    [_markRenderer setMarkStyle:iTermMarkStyleNone
-                            row:((_iteration + 0) % _rows)];
-    [_markRenderer setMarkStyle:iTermMarkStyleSuccess
-                            row:((_iteration + 1) % _rows)];
-    [_markRenderer setMarkStyle:iTermMarkStyleFailure
-                            row:((_iteration + 2) % _rows)];
-    [_markRenderer setMarkStyle:iTermMarkStyleOther
-                            row:((_iteration + 3) % _rows)];
-
-    iTermTextRendererContext *context = [[iTermTextRendererContext alloc] init];
-    int i = 0;
-    id<iTermMetalTestDriverDataSource> dataSource = _dataSource;
     CGSize cellSize = _cellSize;
     CGFloat scale = _scale;
-    [dataSource metalDriverWillBeginDrawingFrame];
     for (int y = 0; y < _rows; y++) {
         for (int x = 0; x < _columns; x++) {
-            NSDictionary *attributes;
-            id c = [_dataSource metalCharacterAtScreenCoord:VT100GridCoordMake(x, y) attributes:&attributes];
-            [_textRenderer setCharacter:c
-                             attributes:attributes
+            iTermMetalGlyphAttributes attributes;
+            iTermMetalGlyphKey c = [_dataSource metalCharacterAtScreenCoord:VT100GridCoordMake(x, y) attributes:&attributes];
+            [_textRenderer setCharacter:&c
+                             attributes:&attributes
                                   coord:(VT100GridCoord){x,y}
                                 context:context
                                creation:^NSImage * _Nonnull{
@@ -149,62 +151,74 @@
                                                                                size:cellSize
                                                                               scale:scale];
                                }];
-            i++;
         }
     }
 
-    i = 0;
-    for (int y = 0; y < _rows; y++) {
-        for (int x = 0; x < _columns; x++) {
-            int j = i + _iteration / 10;
-            [_backgroundColorRenderer setColor:(vector_float4){ sin(j), sin(j + M_PI_2), sin(j + M_PI), ((j/60) % 2) ? 1 : 0 }
-                                         coord:(VT100GridCoord){x, y}];
-            i++;
-        }
-    }
+//    i = 0;
+//    for (int y = 0; y < _rows; y++) {
+//        for (int x = 0; x < _columns; x++) {
+//            int j = i + _iteration / 10;
+//            [_backgroundColorRenderer setColor:(vector_float4){ sin(j), sin(j + M_PI_2), sin(j + M_PI), ((j/60) % 2) ? 1 : 0 }
+//                                         coord:(VT100GridCoord){x, y}];
+//            i++;
+//        }
+//    }
     return context;
 }
 
+static int george;
+
 /// Called whenever the view needs to render a frame
 - (void)drawInMTKView:(nonnull MTKView *)view {
-    if (_cellSize.width == 0 || _cellSize.height == 0) {
-        NSLog(@"Uninitialized");
+    DLog(@"%@ %@ %@", dispatch_get_current_queue(), NSStringFromSelector(_cmd), self);
+    id<iTermMetalTestDriverDataSource> dataSource = _dataSource;
+    if (self.busy) {
+        NSLog(@"  abort: busy");
         return;
     }
-    if (_busy || _textRenderer.preparing) {
-        DLog(@"Drop frame");
-        return;
-    }
-    _busy = YES;
-
+    DLog(@"Not busy");
     NSTimeInterval start = [NSDate timeIntervalSinceReferenceDate];
+    [dataSource metalDriverWillBeginDrawingFrame];
+    self.busy = YES;
+    DLog(@"Set busy=yes");
+    dispatch_async(_queue, ^{
+        if (_cellSize.width == 0 || _cellSize.height == 0) {
+            DLog(@"  abort: uninitialized");
+            self.busy = NO;
+            return;
+        }
+        assert(!_textRenderer.preparing);
+        george++;
+//        assert(george == 1);
 
-    if (_sizeChanged) {
-        [self.renderers enumerateObjectsUsingBlock:^(id<iTermMetalCellRenderer>  _Nonnull renderer, NSUInteger idx, BOOL * _Nonnull stop) {
-            [renderer setViewportSize:_viewportSize];
-        }];
-        [self.cellRenderers enumerateObjectsUsingBlock:^(id<iTermMetalCellRenderer>  _Nonnull renderer, NSUInteger idx, BOOL * _Nonnull stop) {
-            [renderer setCellSize:_cellSize];
-            [renderer setGridSize:(VT100GridSize){ MAX(1, _columns), MAX(1, _rows) }];
-        }];
-        _sizeChanged = NO;
-    }
+        if (_sizeChanged) {
+            [self.renderers enumerateObjectsUsingBlock:^(id<iTermMetalCellRenderer>  _Nonnull renderer, NSUInteger idx, BOOL * _Nonnull stop) {
+                [renderer setViewportSize:_viewportSize];
+            }];
+            [self.cellRenderers enumerateObjectsUsingBlock:^(id<iTermMetalCellRenderer>  _Nonnull renderer, NSUInteger idx, BOOL * _Nonnull stop) {
+                [renderer setCellSize:_cellSize];
+                [renderer setGridSize:(VT100GridSize){ MAX(1, _columns), MAX(1, _rows) }];
+            }];
+            _sizeChanged = NO;
+        }
 
-    // For some reason this is very slow
-    iTermTextRendererContext* context = [self rotate];
-    DLog(@"Preparing");
-    [_textRenderer prepareForDrawWithContext:context
-                                  completion:^{
-        [self reallyDrawInView:view
-                     startTime:start
-                       context:context];
-    }];
+        DLog(@"  Updating");
+        iTermTextRendererContext* context = [self updateRenderersWithDataSource:dataSource];
+        DLog(@"  Preparing");
+        [_textRenderer prepareForDrawWithContext:context
+                                      completion:^{
+                                          [self reallyDrawInView:view
+                                                       startTime:start
+                                                         context:context];
+                                      }];
+    });
 }
 
 - (void)reallyDrawInView:(MTKView *)view
                startTime:(NSTimeInterval)start
                  context:(iTermTextRendererContext *)context {
-    DLog(@"Really drawing");
+    NSTimeInterval startDrawTime = [NSDate timeIntervalSinceReferenceDate];
+    DLog(@"  Really drawing");
     id <MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
     commandBuffer.label = @"Test Driver Draw";
 
@@ -242,11 +256,14 @@
         [renderEncoder endEncoding];
 
         [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> _Nonnull buffer) {
-            DLog(@"Completed");
+            DLog(@"  Completed");
             [_textRenderer releaseContext:context];
             NSTimeInterval end = [NSDate timeIntervalSinceReferenceDate];
-            NSLog(@"%@ fps", @(1.0 / (end - start)));
-            _busy = NO;
+            NSLog(@"Preparation: %0.3f", startDrawTime-start);
+            NSLog(@"Rendering:   %0.3f", end-startDrawTime);
+            DLog(@"%@ fps", @(1.0 / (end - start)));
+            george--;
+            self.busy = NO;
         }];
 
         [commandBuffer presentDrawable:view.currentDrawable];

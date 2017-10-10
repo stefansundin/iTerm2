@@ -6,11 +6,9 @@
 @interface iTermTextRendererContext ()
 
 @property (nonatomic, readonly) NSIndexSet *indexes;
+@property (nonatomic, readonly) dispatch_queue_t queue;
 
-- (void)enter;
-- (void)leave;
 - (void)addIndex:(NSInteger)index;
-- (void)notify:(void (^)(void))completion;
 
 @end
 
@@ -19,29 +17,18 @@
     dispatch_group_t _group;
 }
 
-- (instancetype)init {
+- (instancetype)initWithQueue:(dispatch_queue_t)queue {
     self = [super init];
     if (self) {
+        _queue = queue;
         _indexes = [NSMutableIndexSet indexSet];
         _group = dispatch_group_create();
     }
     return self;
 }
 
-- (void)enter {
-    dispatch_group_enter(_group);
-}
-
-- (void)leave {
-    dispatch_group_leave(_group);
-}
-
 - (void)addIndex:(NSInteger)index {
     [_indexes addIndex:index];
-}
-
-- (void)notify:(void (^)(void))completion {
-    dispatch_group_notify(_group, dispatch_get_main_queue(), completion);
 }
 
 @end
@@ -49,6 +36,7 @@
 @implementation iTermTextRenderer {
     iTermMetalCellRenderer *_cellRenderer;
     iTermTextureMap *_textureMap;
+    iTermTextPIU *_piuContents;
 }
 
 - (instancetype)initWithDevice:(id<MTLDevice>)device {
@@ -112,6 +100,7 @@
     NSMutableData *data = [self newPerInstanceUniformData];
     _cellRenderer.pius = [_cellRenderer.device newBufferWithLength:data.length
                                                            options:MTLResourceStorageModeManaged];
+    _piuContents = _cellRenderer.pius.contents;
     memcpy(_cellRenderer.pius.contents, data.bytes, data.length);
 }
 
@@ -123,11 +112,9 @@
                        completion:(void (^)(void))completion {
     assert(!_preparing);
     _preparing = YES;
-    [context notify:^{
-        [_textureMap blitNewTexturesFromStagingAreaWithCompletion:^{
-            completion();
-            _preparing = NO;
-        }];
+    [_textureMap blitNewTexturesFromStagingAreaWithCompletion:^{
+        completion();
+        _preparing = NO;
     }];
 }
 
@@ -148,30 +135,31 @@
     [self allocateNewPIUs];
 }
 
-- (void)setCharacter:(id)character
-          attributes:(NSDictionary *)attributes
+- (void)setCharacter:(iTermMetalGlyphKey *)glyphKey
+          attributes:(iTermMetalGlyphAttributes *)attributes
                coord:(VT100GridCoord)coord
              context:(nonnull iTermTextRendererContext *)context
             creation:(NSImage *(NS_NOESCAPE ^)(void))creation {
-    NSColor *color = attributes[NSForegroundColorAttributeName];
-
     // Look it up in the session map. If we find it, we can use it directly. The creation block will not be called.a
-    [context enter];
-    [_textureMap findOrAllocateIndexOfLockedTextureWithKey:character
-                                                  creation:creation
-                                                completion:^(NSInteger index) {
-                                                    if (index >= 0) {
-                                                        // Update the PIU with the session index. It may not be a legit value yet.
-                                                        iTermTextPIU *piu = (iTermTextPIU *)[_cellRenderer piuForCoord:coord];
-                                                        MTLOrigin origin = [_textureMap.array offsetForIndex:index];
-                                                        const float w = 1.0 / _textureMap.array.atlasSize.width;
-                                                        const float h = 1.0 / _textureMap.array.atlasSize.height;
-                                                        piu->textureOffset = (vector_float2){ origin.x * w, origin.y * h };
-                                                        piu->color = (vector_float4){ color.redComponent, color.greenComponent, color.blueComponent, color.alphaComponent };
-                                                        [context addIndex:index];
-                                                    }
-                                                    [context leave];
-                                                }];
+    NSInteger index =
+        [_textureMap findOrAllocateIndexOfLockedTextureWithKey:glyphKey
+                                                      creation:creation];
+    if (index >= 0) {
+        // Update the PIU with the session index. It may not be a legit value yet.
+        const size_t i = coord.x + coord.y * _cellRenderer.gridSize.width;
+        iTermTextPIU *piu = &_piuContents[i];
+        MTLOrigin origin = [_textureMap.array offsetForIndex:index];
+        const float w = 1.0 / _textureMap.array.atlasSize.width;
+        const float h = 1.0 / _textureMap.array.atlasSize.height;
+        piu->textureOffset = (vector_float2){ origin.x * w, origin.y * h };
+        piu->color = (vector_float4){
+            attributes->foregroundColor[0],
+            attributes->foregroundColor[1],
+            attributes->foregroundColor[2],
+            attributes->foregroundColor[3],
+        };
+        [context addIndex:index];
+    }
 }
 
 - (void)releaseContext:(iTermTextRendererContext *)context {
