@@ -1070,7 +1070,8 @@ static iTermController *gSharedInstance;
         NSString *urlType = [urlRep scheme];
 
         if ([urlType compare:@"ssh" options:NSCaseInsensitiveSearch] == NSOrderedSame) {
-            NSMutableString *tempString = [NSMutableString stringWithString:@"/usr/local/bin/ssh-scheme "];
+            NSMutableString *tempString = [NSMutableString stringWithString:[iTermAdvancedSettingsModel sshSchemePath]];
+            [tempString appendString:@" "];
             NSString *username = [urlRep user];
             if (username) {
                 NSMutableCharacterSet *legalCharacters = [NSMutableCharacterSet alphanumericCharacterSet];
@@ -1537,4 +1538,3 @@ static iTermController *gSharedInstance;
 }
 
 @end
-

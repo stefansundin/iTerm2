@@ -216,6 +216,7 @@
 + (double)activeUpdateCadence;
 + (BOOL)openNewWindowAtStartup;
 + (BOOL)resetSGROnPrompt;
++ (NSString *)sshSchemePath;
 
 #warning Bring this back
 //+ (BOOL)useLowPowerGPUWhenUnplugged;
